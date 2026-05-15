@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Workspace;
 use Domain\Workspaces\Enums\WorkspacePlan;
-use Domain\Workspaces\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

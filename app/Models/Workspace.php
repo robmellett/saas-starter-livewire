@@ -1,8 +1,7 @@
 <?php
 
-namespace Domain\Workspaces\Models;
+namespace App\Models;
 
-use App\Models\User;
 use Database\Factories\WorkspaceFactory;
 use Domain\Workspaces\Enums\WorkspacePlan;
 use Domain\Workspaces\Enums\WorkspaceRole;
@@ -10,12 +9,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Laravel\Paddle\Billable;
 
 #[Fillable(['name', 'plan'])]
 class Workspace extends Model
 {
     /** @use HasFactory<WorkspaceFactory> */
-    use HasFactory;
+    use Billable, HasFactory;
 
     protected function casts(): array
     {

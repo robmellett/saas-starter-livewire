@@ -3,9 +3,9 @@
 namespace Domain\Workspaces\Actions;
 
 use App\Models\User;
+use App\Models\Workspace;
 use Domain\Workspaces\Enums\WorkspacePlan;
 use Domain\Workspaces\Enums\WorkspaceRole;
-use Domain\Workspaces\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 
 class CreatePersonalWorkspaceAction
