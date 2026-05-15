@@ -7,7 +7,7 @@ This project's conventions **override** the Cloudflare Workers stack documented 
 - **PHP**: `^8.3` (local: 8.4)
 - **Laravel**: `^13.8` (currently 13.9)
 - **Frontend**: Vite 8 + TailwindCSS 4 + `laravel-vite-plugin`
-- **Database**: SQLite (`database/database.sqlite`) by default
+- **Database**: PostgreSQL (via Sail in dev; `compose.yaml`). SQLite in-memory for tests (see `phpunit.xml`).
 - **Testing**: PHPUnit 12 (Pest plugin is allow-listed in composer but not installed)
 - **Linter**: Laravel Pint (preset: `laravel`)
 - **Logs**: `laravel/pail` for tailing
@@ -15,11 +15,13 @@ This project's conventions **override** the Cloudflare Workers stack documented 
 
 ## Commands
 
-- `composer dev` — runs `php artisan serve`, queue listener, `pail`, and `npm run dev` concurrently
-- `composer test` — clears config and runs `php artisan test`
-- `composer setup` — full install + key gen + migrate + npm build (post-clone bootstrap)
-- `php artisan migrate` — apply migrations (SQLite local)
-- `vendor/bin/pint` — format code
+- `./vendor/bin/sail up -d` — start dev containers (app, pgsql, redis, mailpit)
+- `./vendor/bin/sail artisan ...` — run artisan inside the app container (always use this, not bare `php artisan`, since the DB host is `pgsql` inside Docker)
+- `./vendor/bin/sail artisan test` — run the test suite
+- `./vendor/bin/sail composer ...` — composer inside the container
+- `npm run dev` / `npm run build` — Vite (runs on host, not Sail)
+- `vendor/bin/pint` — format code (host-side; reads files only)
+- Mailpit UI: http://localhost:8025 — preview password-reset emails locally
 
 ## Defaults already wired in
 
@@ -38,7 +40,6 @@ app/                          # Application layer (HTTP/CLI wiring) — namespac
   Providers/
 src/
   Domain/<BoundedContext>/    # Domain layer — namespace Domain\<BoundedContext>\
-    Models/                   # Eloquent models (move User here when Users domain exists)
     Actions/                  # Single-purpose invokables (the unit of business logic)
     Data/                     # spatie/laravel-data DTOs (inputs, outputs, internal value objects)
     States/                   # spatie/laravel-model-states (when needed)
@@ -54,7 +55,7 @@ Composer autoload (already wired): `App\\: app/`, `Domain\\: src/Domain/`, `Supp
 - **Controllers** belong in `app/Http/Controllers/`. They are thin: resolve a Form Request or `Data` object, hand off to an Action, return a response. Keep under 10 lines.
 - **Actions** are single-purpose invokable classes in `src/Domain/<Ctx>/Actions/`. They contain the actual business logic. Inject dependencies via the constructor; never `app()->make()` inside.
 - **DTOs via `spatie/laravel-data`** are preferred over plain Form Requests for anything that flows past the HTTP layer. Use `Data` objects as Action inputs, internal value objects, and resource outputs. Form Requests are fine for simple validation that doesn't propagate further.
-- **Models** live in their bounded context (`src/Domain/Invoices/Models/Invoice.php`, not `app/Models/`).
+- **Models** live in `app/Models/`.
 - **No `Service` classes.** If you reach for one, write an Action instead. Multiple related Actions sharing helpers? Extract to a value object in `Data/` or a query builder in `QueryBuilders/`.
 - **Cross-domain calls** go through events or explicit Action-to-Action invocation. No reaching into another domain's models/queries directly.
 
