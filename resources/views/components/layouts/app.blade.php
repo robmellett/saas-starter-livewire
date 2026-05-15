@@ -6,6 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? config('app.name', 'Laravel') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
+    @stack('head')
 </head>
 <body class="h-full font-sans antialiased text-zinc-900 dark:text-zinc-100">
     <nav class="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
@@ -30,5 +32,8 @@
     <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         {{ $slot }}
     </main>
+
+    @livewireScripts
+    @stack('scripts')
 </body>
 </html>

@@ -52,7 +52,7 @@ class PlanData extends Data
     /**
      * @return array<int, self>
      */
-    public static function all(): array
+    public static function catalog(): array
     {
         $plans = config('billing.plans', []);
 

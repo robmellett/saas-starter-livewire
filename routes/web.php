@@ -8,4 +8,5 @@ Route::get('/', function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
+    Route::view('/billing', 'billing.index')->name('billing');
 });

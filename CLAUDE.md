@@ -67,6 +67,35 @@ Composer autoload (already wired): `App\\: app/`, `Domain\\: src/Domain/`, `Supp
 - `spatie/laravel-permission` — add for roles/permissions (not installed yet)
 - `spatie/laravel-ray` — dev-only debugging (installed)
 
+## Billing (Cashier Paddle)
+
+- **Billable tenant** is `App\Models\Workspace`, NOT `User`. The Paddle `Billable` trait sits on Workspace because subscriptions belong to workspaces, not individuals.
+- **Plans** (`Free`, `Premium`, `Enterprise`) are defined in `config/billing.php` and surfaced via `Domain\Billing\Data\PlanData::catalog()` / `::fromKey()`.
+- **`Workspace::currentPlan()`** is the canonical read: returns `Free` when `!subscribed()` (so grace-period expiry auto-downgrades), otherwise resolves the price-id to a `WorkspacePlan` enum. The `workspaces.plan` column is a denormalized cache; never trust it raw for authorization.
+- **`Domain\Billing\Listeners\SyncSubscriptionPlan`** updates `workspaces.plan` on `SubscriptionCreated|Updated`. It deliberately does NOT listen to `SubscriptionCanceled` — grace period is honored by Cashier's `subscribed()` returning true until `ends_at` passes.
+- **Webhook**: `POST /paddle/webhook` (Cashier handles signature verification automatically).
+- **Authorization**: `WorkspacePolicy::manageBilling()` — only `WorkspaceRole::Owner` can subscribe/cancel/resume. Use `$user->can('manageBilling', $workspace)`.
+- **Feature gating**: `Route::middleware('plan:premium,enterprise')` via the `RequiresPlan` middleware (aliased in `bootstrap/app.php`).
+
+### Required env vars (`.env`)
+
+```
+PADDLE_SANDBOX=true
+PADDLE_SELLER_ID=
+PADDLE_API_KEY=
+PADDLE_CLIENT_SIDE_TOKEN=
+PADDLE_WEBHOOK_SECRET=
+PADDLE_PRICE_PREMIUM=
+PADDLE_PRICE_ENTERPRISE=
+```
+
+## Livewire (v4)
+
+- Components live in `app/Livewire/<Feature>/<Name>.php`, views in `resources/views/livewire/<feature>/<name>.blade.php`. Auto-discovery handles routing: `<livewire:billing.plan-picker />`.
+- **Don't pre-build Paddle Checkout objects in `render()`** — `$workspace->subscribe()` calls `createAsCustomer()` which hits the Paddle API. Build the checkout inside a Livewire method (`subscribe(string $key)`) on demand, dispatch a browser event (`$this->dispatch('paddle-checkout', config: [...])`), and let JS open the overlay via `Paddle.Checkout.open()`.
+- App layout (`resources/views/components/layouts/app.blade.php`) includes `@livewireStyles`, `@livewireScripts`, plus `@stack('head')` and `@stack('scripts')` for page-specific JS (Paddle.js init lives in `resources/views/billing/index.blade.php` via `@push('scripts')`).
+- **Naming pitfall**: never name a static method `all()` on a class extending `Spatie\LaravelData\Data` — the parent has a non-static `all()` and PHP fatals. Use `catalog()` / `available()` / similar.
+
 ## House rules (apply Laravel best-practices skill)
 
 The `laravel-best-practices` skill is the authoritative source for general Laravel patterns — invoke it for any non-trivial change. Beyond CRUD layering is layered on top:
