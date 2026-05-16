@@ -11,13 +11,7 @@ use Livewire\Component;
 
 class SubscriptionPanel extends Component
 {
-    public const PROCESSING_TIMEOUT_SECONDS = 60;
-
     public Workspace $workspace;
-
-    public ?string $processingTransactionId = null;
-
-    public ?int $processingStartedAt = null;
 
     public function mount(): void
     {
@@ -28,23 +22,6 @@ class SubscriptionPanel extends Component
         abort_unless($workspace !== null, 404, 'No workspace selected.');
 
         $this->workspace = $workspace;
-
-        $txn = request()->query('_ptxn');
-
-        if (is_string($txn) && $txn !== '' && $workspace->subscription() === null) {
-            $this->processingTransactionId = $txn;
-            $this->processingStartedAt = now()->timestamp;
-        }
-    }
-
-    public function checkSubscription(): void
-    {
-        $this->workspace->refresh();
-
-        if ($this->workspace->subscription() !== null) {
-            $this->processingTransactionId = null;
-            $this->processingStartedAt = null;
-        }
     }
 
     public function cancel(): void
@@ -83,18 +60,10 @@ class SubscriptionPanel extends Component
     {
         $subscription = $this->workspace->subscription();
 
-        $isProcessing = $this->processingTransactionId !== null && $subscription === null;
-
-        $processingTimedOut = $isProcessing
-            && $this->processingStartedAt !== null
-            && (now()->timestamp - $this->processingStartedAt) > self::PROCESSING_TIMEOUT_SECONDS;
-
         return view('livewire.billing.subscription-panel', [
             'subscription' => $subscription,
             'currentPlan' => $this->workspace->currentPlan(),
             'canManageBilling' => Auth::user()?->can('manageBilling', $this->workspace) ?? false,
-            'isProcessing' => $isProcessing,
-            'processingTimedOut' => $processingTimedOut,
         ]);
     }
 

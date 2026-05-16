@@ -42,7 +42,7 @@ class PlanPickerTest extends TestCase
                     'items' => [['priceId' => 'pri_pro', 'quantity' => 1]],
                     'customer' => ['id' => 'ctm_test'],
                     'customData' => ['workspace_id' => $workspace->id],
-                    'settings' => ['successUrl' => route('billing')],
+                    'settings' => ['successUrl' => route('billing.pending')],
                 ],
             );
     }

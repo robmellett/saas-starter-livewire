@@ -158,6 +158,7 @@ Mailpit (password-reset emails) at <http://localhost:8025>.
 | **App** | | | |
 | GET | `/dashboard` | `dashboard` | Auth required; shows current workspace |
 | GET | `/billing` | `billing` | Auth required; PlanPicker + SubscriptionPanel |
+| GET | `/billing/pending` | `billing.pending` | Auth required; the post-checkout landing page. Polls every 2s for the `subscription.created` webhook, then redirects to `/billing` |
 | GET | `/billing/payment-method` | `billing.payment-method` | Owner only; lazily fetches Paddle's payment-method URL and 302s to it. Redirects back with a session error on Paddle API failure |
 | **Billing webhooks** | | | |
 | POST | `/paddle/webhook` | `cashier.webhook` | Paddle webhook receiver; signature verified by Cashier |
@@ -225,11 +226,13 @@ Workspace has no `email` column, so we override `Workspace::paddleEmail()` to re
 4. Component dispatches a browser event `paddle-checkout` with the checkout config
 5. JS handler in `resources/views/billing/index.blade.php` calls `Paddle.Checkout.open(config)`, the Paddle overlay opens
 6. User completes payment in the overlay
-7. Paddle sends webhooks to `/paddle/webhook` *and* redirects the user back to `/billing?_ptxn=txn_xxx` (the `successUrl` set by `StartCheckoutAction::returnTo()`)
-8. `SubscriptionPanel` detects `?_ptxn=` and enters a **Processing payment** state — it shows a spinner and polls `checkSubscription()` every 2 seconds via `wire:poll` until the row appears. After 60 seconds (`SubscriptionPanel::PROCESSING_TIMEOUT_SECONDS`) the polling stops and the message switches to "try refreshing in a moment"
+7. Paddle sends webhooks to `/paddle/webhook` *and* redirects the user to `/billing/pending?_ptxn=txn_xxx` (the `successUrl` set by `StartCheckoutAction::returnTo()` — a dedicated "Processing payment" page, not back to `/billing` directly)
+8. `App\Livewire\Billing\PendingPayment` renders a full-page spinner and `wire:poll`s `checkSubscription()` every 2 seconds. If the workspace already has a subscription on mount (e.g., user refreshed after webhook landed), it redirects straight to `/billing`. After 60 seconds (`PendingPayment::PROCESSING_TIMEOUT_SECONDS`) the polling stops and the page switches to a "Still confirming" state with a manual Check again button and a Back to billing link
 9. Cashier creates `subscriptions` + `subscription_items` rows, dispatches `Laravel\Paddle\Events\SubscriptionCreated`
 10. `Domain\Billing\Listeners\SyncSubscriptionPlan` writes `workspaces.plan` from the subscription's price ID
-11. The next `wire:poll` tick on `SubscriptionPanel` picks up the new subscription, clears `processingTransactionId`, and renders the normal "Active" view — no page refresh needed
+11. The next `wire:poll` tick on `PendingPayment` sees the subscription, returns `redirect()->route('billing')`, and the user lands on `/billing` with the normal "Active" view — no manual refresh needed
+
+`SubscriptionPanel` itself is now stateless: it only cares about whether a subscription row exists *now*. All post-checkout polling lives on `PendingPayment`.
 
 The Paddle.js script is injected by `@paddleJS` (a Cashier directive) on the `/billing` page only — we don't load it globally.
 
@@ -357,7 +360,7 @@ Feature tests covering:
  - `SyncSubscriptionPlan` listener (Pro/Enterprise/Updated/unknown-price fallback)
  - `PlanPicker` Livewire checkout dispatch (via `Cashier::fake()`)
  - `SubscriptionPanel` cancel/resume/error paths (via `Cashier::fake()`)
- - `SubscriptionPanel` post-payment processing state (`?_ptxn=` detection, poll-driven clear once subscription appears)
+ - `PendingPayment` post-checkout landing page (auth gate, render with `_ptxn`, redirect to `/billing` once the subscription appears, timeout state)
  - `PaymentMethodController` (owner-only authz, redirect to Paddle, graceful fallback on API error / missing subscription)
  - Paddle webhook signature verification (valid, missing, tampered, stale-timestamp)
  - `paddle:fake-webhook` artisan command (payload shape + HMAC signature header)
