@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Testing\TestResponse;
 use Laravel\Paddle\Events\WebhookReceived;
 use Laravel\Paddle\Http\Middleware\VerifyWebhookSignature;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 class WebhookSignatureTest extends TestCase
@@ -90,6 +91,10 @@ class WebhookSignatureTest extends TestCase
         )->assertForbidden();
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return TestResponse<Response>
+     */
     private function signedPost(array $payload): TestResponse
     {
         $json = json_encode($payload, JSON_THROW_ON_ERROR);

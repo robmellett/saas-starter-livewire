@@ -27,6 +27,7 @@ class SyncSubscriptionPlan
 
     public function handleSubscriptionUpdated(SubscriptionUpdated $event): void
     {
+        /** @var mixed $billable */
         $billable = $event->subscription->billable;
 
         if ($billable instanceof Workspace) {

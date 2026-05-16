@@ -13,6 +13,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Laravel\Paddle\Billable;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property WorkspacePlan|null $plan
+ */
 #[Fillable(['name', 'plan'])]
 #[UsePolicy(WorkspacePolicy::class)]
 class Workspace extends Model
@@ -27,10 +32,14 @@ class Workspace extends Model
         ];
     }
 
+    /**
+     * @return BelongsToMany<User, $this, WorkspaceMembership>
+     */
     public function members(): BelongsToMany
     {
         return $this
             ->belongsToMany(User::class, 'workspace_user')
+            ->using(WorkspaceMembership::class)
             ->withPivot('role')
             ->withTimestamps();
     }

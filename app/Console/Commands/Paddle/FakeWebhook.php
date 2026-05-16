@@ -103,7 +103,10 @@ class FakeWebhook extends Command
                 return null;
             }
 
-            $customer = $workspace->customer;
+            $customer = Customer::query()
+                ->where('billable_id', $workspace->id)
+                ->where('billable_type', Workspace::class)
+                ->first();
 
             if ($customer === null) {
                 $this->components->error(
