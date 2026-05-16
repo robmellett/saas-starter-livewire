@@ -63,7 +63,7 @@ One click deploy to Laravel Cloud
 
 ## Stack
 
-- **PHP** 8.3+ (developed on 8.4) · **Laravel** 13 · **Livewire** 4
+- **PHP** 8.4· **Laravel** 13 · **Livewire** 4
 - **DB** PostgreSQL via Laravel Sail in dev; SQLite in-memory for tests
 - **Frontend** Vite 8 + TailwindCSS 4 + plain Blade (no Inertia / Filament)
 - **Auth** Laravel Fortify (custom Blade views, no email verification, 2FA columns present but no UI)
