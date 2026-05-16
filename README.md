@@ -161,6 +161,7 @@ Mailpit (password-reset emails) at <http://localhost:8025>.
 | **App** | | | |
 | GET | `/dashboard` | `dashboard` | Auth required; shows current workspace |
 | GET | `/billing` | `billing` | Auth required; PlanPicker + SubscriptionPanel |
+| GET | `/billing/payment-method` | `billing.payment-method` | Owner only; lazily fetches Paddle's payment-method URL and 302s to it. Redirects back with a session error on Paddle API failure |
 | **Billing webhooks** | | | |
 | POST | `/paddle/webhook` | `cashier.webhook` | Paddle webhook receiver; signature verified by Cashier |
 | **Livewire internals** | | | |
@@ -252,7 +253,10 @@ The `workspaces.plan` column is a denormalized cache, useful for `WHERE plan = '
 
 **Resume**: during grace period, `SubscriptionPanel::resume()` calls `$subscription->stopCancelation()` (NOT `resume()` — that method is for *paused* subscriptions and throws `LogicException` on canceled ones).
 
-**Update payment method**: link to `$subscription->paymentMethodUpdateUrl()` (Paddle-hosted page).
+**Update payment method**: the panel renders a plain link to `route('billing.payment-method')` (handled by `App\Http\Controllers\Billing\PaymentMethodController`). That controller calls `$subscription->paymentMethodUpdateUrl()` *only when the user clicks the button* and 302s straight to Paddle. Two reasons not to call this on render:
+
+- `paymentMethodUpdateUrl()` hits Paddle's API (`GET subscriptions/{id}`) — doing it on every billing-page render adds ~100–300ms per page load.
+- If the local `subscriptions` row points at a Paddle ID that no longer exists (stale `paddle:fake-webhook` seed, environment rotation), the render would explode. The deferred-fetch model isolates that failure to the click and redirects back to `/billing` with a session error.
 
 ### Required env vars
 
