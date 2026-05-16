@@ -1,0 +1,20 @@
+<svg width="400" height="400" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .tile { fill: #FAFAF7; stroke: #1F1F1C; stroke-width: 1.2; }
+    .ink-thin { stroke: #1F1F1C; fill: none; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+    .accent-amber { fill: #D4A24C; }
+    .accent-purple { fill: #6B4E8C; }
+    .accent-teal { fill: #3D8A8A; }
+    .label { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 500; fill: #1F1F1C; text-anchor: middle; letter-spacing: 0.3px; text-transform: uppercase; }
+  </style>
+  <rect class="tile" width="200" height="200" rx="6"/>
+  <circle cx="100" cy="75" r="20" class="accent-purple"/>
+  <path d="M 70 125 Q 70 100 100 100 Q 130 100 130 125 L 130 135 L 70 135 Z" class="accent-purple"/>
+  <circle cx="50" cy="115" r="13" class="accent-teal"/>
+  <path d="M 32 150 Q 32 132 50 132 Q 68 132 68 150 L 68 158 L 32 158 Z" class="accent-teal"/>
+  <circle cx="150" cy="115" r="13" class="accent-amber"/>
+  <path d="M 132 150 Q 132 132 150 132 Q 168 132 168 150 L 168 158 L 132 158 Z" class="accent-amber"/>
+  <line x1="65" y1="105" x2="85" y2="92" class="ink-thin" stroke-dasharray="2,2"/>
+  <line x1="135" y1="105" x2="115" y2="92" class="ink-thin" stroke-dasharray="2,2"/>
+  <text x="100" y="180" class="label">Teams &amp; auth</text>
+</svg>

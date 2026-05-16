@@ -1,3 +1,65 @@
+# ModernSaaS — Laravel + Paddle Starter Kit
+A production-ready Laravel SaaS starter kit with Paddle billing baked in, so you can skip the boilerplate and ship your
+actual product.
+
+## Who is this for?
+Solo developers, small teams, and indie hackers who want to launch a subscription-based SaaS without spending the first
+two months wiring up auth, billing, teams, and webhooks. It assumes you're comfortable with Laravel — this isn't a
+no-code tool, it's a head start for people who'd otherwise be writing the same subscriptions migration for the fifth
+time.
+
+It's also a fit for agencies prototyping SaaS products for clients, and developers migrating off Stripe who want
+Paddle's Merchant of Record model to handle global tax compliance.
+
+## Why use it?
+Most SaaS starters either lock you into opinionated frontends you'll fight forever, or hand you a skeleton so bare you
+still spend weeks on plumbing. ModernSaaS aims for the middle: modern Laravel conventions (actions, DTOs, form requests,
+policies) with the billing layer fully wired up against Paddle's current API — including the webhook signature
+verification and subscription lifecycle edge cases that usually bite you in production.
+
+Paddle as Merchant of Record means you don't have to register for VAT/GST in 40 jurisdictions or build your own tax
+engine. The starter is built around that assumption from day one.
+
+## Features
+
+![Features](docs/images/features.png)
+
+### Billing & subscriptions (Paddle)
+Paddle Billing integration via Cashier Paddle, with checkout overlays, customer portal, subscription
+pause/resume/cancel, plan switching with prorations, trial periods, one-time charges, and webhook handlers for every
+relevant event (subscription created/updated/cancelled, transaction completed, payment failed, refunds). Includes a
+dunning flow for failed payments.
+
+### Authentication & teams
+Email/password and magic link auth, email verification, two-factor authentication, password resets, and social login
+scaffolding (Google, GitHub). Team workspaces with invitations, roles (owner/admin/member), and per-team subscription
+billing — so one user can belong to multiple teams, each with its own plan.
+
+### Plans & entitlements
+A clean entitlements layer that maps Paddle products to feature flags and usage limits (e.g., "Pro plan: 10 projects,
+50GB storage"). 
+
+Middleware and policies enforce limits without scattering if ($user->plan === 'pro') checks across your
+codebase.
+
+### Admin dashboard
+Filament-powered admin panel for managing users, teams, subscriptions, refunds, and viewing MRR/churn metrics.
+Impersonation for support, with audit logging.
+
+### Developer experience
+Built on Laravel 11+, Livewire/Volt or Inertia + React (your pick at install), Tailwind CSS, Pest for tests, and a
+domain-oriented folder structure following Laravel Beyond CRUD patterns. Includes seeders, factories, and a complete
+Pest test suite covering the billing flows. Docker Compose for local dev, GitHub Actions CI, and a one-command deploy
+script for Laravel Forge.
+
+### Production essentials
+Transactional email via Resend/Postmark, queued jobs with Horizon, rate limiting, CSP headers, GDPR-friendly data export
+and account deletion endpoints, and Sentry integration for error tracking.
+
+## Really simple deployment
+One click deploy to Laravel Cloud
+
+
 # Laravel SaaS Starter Livewire
 
 A Laravel 13 + Livewire 4 app with workspace-scoped Paddle billing.
@@ -54,7 +116,11 @@ cd saas-starter-livewire
 
 cp .env.example .env
 
-# Fill in PADDLE_* vars (see Billing section for more information)
+# See Billing section for more information on setting up Paddle.
+PADDLE_SANDBOX=true
+PADDLE_CLIENT_SIDE_TOKEN=your-paddle-client-side-token
+PADDLE_API_KEY=
+PADDLE_WEBHOOK_SECRET="your-paddle-webhook-secret"
 
 composer install
 npm install
@@ -63,10 +129,12 @@ php artisan key:generate
 ./vendor/bin/sail up -d
 ./vendor/bin/sail artisan migrate
 
-npm run dev   # in another terminal
+npm run dev 
 ```
 
-Open <http://localhost> · Mailpit (password-reset emails) at <http://localhost:8025>.
+Open [http://localhost](http://localhost). 
+
+Mailpit (password-reset emails) at <http://localhost:8025>.
 
 ## Routes
 
@@ -158,17 +226,19 @@ The Paddle.js script is injected by `@paddleJS` (a Cashier directive) on the `/b
 **Reading the current plan**: always call `$workspace->currentPlan()`, never the raw `plan` column.
 
 ```php
+# App\Models\Workspace.php
+
 public function currentPlan(): WorkspacePlan
 {
     if (! $this->subscribed()) {
         return WorkspacePlan::Free;
     }
 
-    if ($this->subscription()?->hasPrice($enterprisePriceId)) return WorkspacePlan::Enterprise;
-    if ($this->subscription()?->hasPrice($proPriceId))        return WorkspacePlan::Pro;
-    if ($this->subscription()?->hasPrice($basicPriceId))      return WorkspacePlan::Basic;
-
-    return $this->plan ?? WorkspacePlan::Free;
+    if ($this->subscription()?->hasPrice($enterprisePriceId)) {
+        return WorkspacePlan::Enterprise;
+    }
+    
+    // ....
 }
 ```
 
