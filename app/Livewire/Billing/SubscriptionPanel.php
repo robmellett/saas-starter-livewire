@@ -6,7 +6,10 @@ use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Laravel\Paddle\Exceptions\PaddleException;
+use Laravel\Paddle\Subscription;
 use Livewire\Component;
 
 class SubscriptionPanel extends Component
@@ -92,11 +95,30 @@ class SubscriptionPanel extends Component
         return view('livewire.billing.subscription-panel', [
             'subscription' => $subscription,
             'currentPlan' => $this->workspace->currentPlan(),
-            'paymentMethodUrl' => $subscription?->paymentMethodUpdateUrl(),
+            'paymentMethodUrl' => $this->safePaymentMethodUrl($subscription),
             'canManageBilling' => Auth::user()?->can('manageBilling', $this->workspace) ?? false,
             'isProcessing' => $isProcessing,
             'processingTimedOut' => $processingTimedOut,
         ]);
+    }
+
+    private function safePaymentMethodUrl(?Subscription $subscription): ?string
+    {
+        if ($subscription === null) {
+            return null;
+        }
+
+        try {
+            return $subscription->paymentMethodUpdateUrl();
+        } catch (PaddleException $e) {
+            Log::warning('Failed to fetch Paddle payment method URL', [
+                'workspace_id' => $this->workspace->id,
+                'subscription_paddle_id' => $subscription->paddle_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     private function authorizeBilling(): void

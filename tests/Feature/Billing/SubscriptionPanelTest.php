@@ -8,6 +8,7 @@ use App\Models\Workspace;
 use Domain\Workspaces\Actions\CreatePersonalWorkspaceAction;
 use Domain\Workspaces\Enums\WorkspaceRole;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Laravel\Paddle\Cashier;
 use Laravel\Paddle\Subscription;
 use Livewire\Livewire;
@@ -92,6 +93,44 @@ class SubscriptionPanelTest extends TestCase
             ->test(SubscriptionPanel::class)
             ->call('cancel')
             ->assertHasErrors('subscription');
+    }
+
+    public function test_render_survives_paddle_api_failure_on_payment_method_url(): void
+    {
+        Cashier::fake()->error('subscriptions/sub_stale');
+
+        $owner = User::factory()->create();
+        $workspace = app(CreatePersonalWorkspaceAction::class)->execute($owner);
+
+        $workspace->customer()->create([
+            'paddle_id' => 'ctm_stale',
+            'email' => $owner->email,
+            'name' => $owner->name,
+        ]);
+
+        $subscription = Cashier::$subscriptionModel::create([
+            'billable_id' => $workspace->id,
+            'billable_type' => $workspace::class,
+            'type' => Subscription::DEFAULT_TYPE,
+            'paddle_id' => 'sub_stale',
+            'status' => Subscription::STATUS_ACTIVE,
+        ]);
+
+        $subscription->items()->create([
+            'product_id' => 'pro_test',
+            'price_id' => 'pri_pro',
+            'status' => 'active',
+            'quantity' => 1,
+        ]);
+
+        Log::spy();
+
+        Livewire::actingAs($owner->refresh())
+            ->test(SubscriptionPanel::class)
+            ->assertOk()
+            ->assertDontSee('Update payment method');
+
+        Log::shouldHaveReceived('warning')->once();
     }
 
     public function test_processing_state_shown_when_ptxn_param_present_and_no_subscription(): void
