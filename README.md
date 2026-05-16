@@ -39,7 +39,7 @@ billing — so one user can belong to multiple teams, each with its own plan.
 A clean entitlements layer that maps Paddle products to feature flags and usage limits (e.g., "Pro plan: 10 projects,
 50GB storage"). 
 
-Middleware and policies enforce limits without scattering if ($user->plan === 'pro') checks across your
+Middleware and policies enforce limits without scattering if `($user->plan === 'pro')` checks across your
 codebase.
 
 ### Admin dashboard
@@ -50,19 +50,14 @@ Impersonation for support, with audit logging.
 Built on Laravel 11+, Livewire/Volt or Inertia + React (your pick at install), Tailwind CSS, Pest for tests, and a
 domain-oriented folder structure following Laravel Beyond CRUD patterns. Includes seeders, factories, and a complete
 Pest test suite covering the billing flows. Docker Compose for local dev, GitHub Actions CI, and a one-command deploy
-script for Laravel Forge.
+script for Laravel Cloud.
 
 ### Production essentials
 Transactional email via Resend/Postmark, queued jobs with Horizon, rate limiting, CSP headers, GDPR-friendly data export
 and account deletion endpoints, and Sentry integration for error tracking.
 
-## Really simple deployment
+### Really simple deployment
 One click deploy to Laravel Cloud
-
-
-# Laravel SaaS Starter Livewire
-
-A Laravel 13 + Livewire 4 app with workspace-scoped Paddle billing.
 
 ## Stack
 
@@ -195,9 +190,11 @@ Layouts live as anonymous Blade components in `resources/views/components/layout
 4. Create a Client Side Token in Paddle.
 5. Open a checkout and test a payment link
 
-**Tenant model**: subscriptions belong to a `Workspace`, not a `User`. The `Laravel\Paddle\Billable` trait is on `App\Models\Workspace`.
+## Tenant model: subscriptions belong to a `Workspace`, not a `User`. 
 
-**Plans** are configured in `config/billing.php`:
+The `Laravel\Paddle\Billable` trait is on `App\Models\Workspace`.
+
+## Plans are configured in `config/billing.php`:
 
 ```
 Free       — no config entry; emitted by Workspace::currentPlan() when !subscribed()
@@ -206,11 +203,15 @@ Pro        — env('PADDLE_PRICE_PRO')
 Enterprise — env('PADDLE_PRICE_ENTERPRISE')
 ```
 
-`Domain\Billing\Data\PlanData::catalog()` returns Basic/Pro/Enterprise as DTOs. `PlanData::fromKey('pro')` returns one.
+`Domain\Billing\Data\PlanData::catalog()` returns Basic/Pro/Enterprise as DTOs.
 
-**Workspace as billable**: Cashier-Paddle's default `paddleEmail()` reads `$this->email`. Workspace has no `email` column, so we override `Workspace::paddleEmail()` to return the owner user's email. Without that override, `Model::shouldBeStrict()` throws on the missing-attribute access.
+## Workspace as billable ##:
 
-**Checkout flow** (Livewire + Paddle.js overlay):
+Cashier-Paddle's default `paddleEmail()` reads `$this->email`. 
+
+Workspace has no `email` column, so we override `Workspace::paddleEmail()` to return the owner user's email. Without that override, `Model::shouldBeStrict()` throws on the missing-attribute access.
+
+## Checkout flow (Livewire + Paddle.js overlay):
 
 1. User on `/billing` sees `<livewire:billing.plan-picker />`
 2. Clicks "Upgrade to Pro" → fires `wire:click="subscribe('pro')"` on `App\Livewire\Billing\PlanPicker`
@@ -225,6 +226,8 @@ Enterprise — env('PADDLE_PRICE_ENTERPRISE')
 11. The next `wire:poll` tick on `SubscriptionPanel` picks up the new subscription, clears `processingTransactionId`, and renders the normal "Active" view — no page refresh needed
 
 The Paddle.js script is injected by `@paddleJS` (a Cashier directive) on the `/billing` page only — we don't load it globally.
+
+## Workspace plan logic
 
 **Reading the current plan**: always call `$workspace->currentPlan()`, never the raw `plan` column.
 
@@ -349,6 +352,7 @@ Feature tests covering:
  - `PlanPicker` Livewire checkout dispatch (via `Cashier::fake()`)
  - `SubscriptionPanel` cancel/resume/error paths (via `Cashier::fake()`)
  - `SubscriptionPanel` post-payment processing state (`?_ptxn=` detection, poll-driven clear once subscription appears)
+ - `PaymentMethodController` (owner-only authz, redirect to Paddle, graceful fallback on API error / missing subscription)
  - Paddle webhook signature verification (valid, missing, tampered, stale-timestamp)
  - `paddle:fake-webhook` artisan command (payload shape + HMAC signature header)
 
