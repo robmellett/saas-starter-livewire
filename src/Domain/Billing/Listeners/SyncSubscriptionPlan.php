@@ -27,12 +27,10 @@ class SyncSubscriptionPlan
 
     public function handleSubscriptionUpdated(SubscriptionUpdated $event): void
     {
-        /** @var mixed $billable */
+        /** @var Workspace $billable */
         $billable = $event->subscription->billable;
 
-        if ($billable instanceof Workspace) {
-            $this->sync($billable, $event->subscription);
-        }
+        $this->sync($billable, $event->subscription);
     }
 
     private function sync(Workspace $workspace, Subscription $subscription): void
@@ -47,17 +45,17 @@ class SyncSubscriptionPlan
     private function planFromSubscription(Subscription $subscription): ?WorkspacePlan
     {
         $enterprise = config()->string('billing.plans.enterprise.price_id');
-        if ($enterprise !== '' && $subscription->hasPrice($enterprise)) {
+        if ($subscription->hasPrice($enterprise)) {
             return WorkspacePlan::Enterprise;
         }
 
         $pro = config()->string('billing.plans.pro.price_id');
-        if ($pro !== '' && $subscription->hasPrice($pro)) {
+        if ($subscription->hasPrice($pro)) {
             return WorkspacePlan::Pro;
         }
 
         $basic = config()->string('billing.plans.basic.price_id');
-        if ($basic !== '' && $subscription->hasPrice($basic)) {
+        if ($subscription->hasPrice($basic)) {
             return WorkspacePlan::Basic;
         }
 

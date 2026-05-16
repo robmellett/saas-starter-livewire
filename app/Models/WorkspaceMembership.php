@@ -12,8 +12,6 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  */
 class WorkspaceMembership extends Pivot
 {
-    public $incrementing = true;
-
     protected $table = 'workspace_user';
 
     protected function casts(): array

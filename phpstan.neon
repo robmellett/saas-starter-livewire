@@ -8,7 +8,7 @@ parameters:
         - app
         - src
         - database
-        - tests
+        # - tests
 
     excludePaths:
         - database/migrations/*

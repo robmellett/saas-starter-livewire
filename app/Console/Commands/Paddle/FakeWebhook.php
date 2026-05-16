@@ -6,6 +6,7 @@ use App\Models\Workspace;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Support\Uri;
 use Laravel\Paddle\Customer;
 
 class FakeWebhook extends Command
@@ -52,7 +53,8 @@ class FakeWebhook extends Command
             return self::FAILURE;
         }
 
-        $url = (string) ($this->option('url') ?? rtrim((string) config('app.url'), '/').'/paddle/webhook');
+        $url = (string) ($this->option('url') ?? Uri::of((string) config('app.url'))->withPath('/paddle/webhook'));
+
         $body = json_encode($payload, JSON_THROW_ON_ERROR);
         $timestamp = now()->timestamp;
         $signature = hash_hmac('sha256', "{$timestamp}:{$body}", $secret);
