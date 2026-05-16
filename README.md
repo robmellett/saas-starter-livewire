@@ -1,4 +1,4 @@
-# markymark.io
+# Laravel SaaS Starter Livewire
 
 A Laravel 13 + Livewire 4 app with workspace-scoped Paddle billing.
 
@@ -14,7 +14,7 @@ A Laravel 13 + Livewire 4 app with workspace-scoped Paddle billing.
 
 ## Architecture (Laravel Beyond CRUD)
 
-Domain logic lives outside `app/` in a `src/Domain/<BoundedContext>/` tree. Framework wiring (controllers, providers, middleware) stays in `app/`. Eloquent models stay in `app/Models/`.
+Domain logic lives inside `src/Domain/<BoundedContext>/` tree. Framework wiring (controllers, providers, middleware) stays in `app/`. Eloquent models stay in `app/Models/`.
 
 ```
 app/
@@ -37,16 +37,20 @@ src/Domain/
     └── Policies/            WorkspacePolicy
 ```
 
-Composer autoload: `App\\: app/`, `Domain\\: src/Domain/`, `Support\\: src/Support/`.
+Composer autoload: 
+ - `App\\: app/`, 
+ - `Domain\\: src/Domain/`, 
+ - `Support\\: src/Support/`
 
 ## Setup
 
 ```bash
 git clone <repo>
-cd markymark.io-laravel
+cd saas-starter-livewire
 
 cp .env.example .env
-# Fill in PADDLE_* vars (see Billing section)
+
+# Fill in PADDLE_* vars (see Billing section for more information)
 
 composer install
 npm install
@@ -54,6 +58,7 @@ php artisan key:generate
 
 ./vendor/bin/sail up -d
 ./vendor/bin/sail artisan migrate
+
 npm run dev   # in another terminal
 ```
 
@@ -109,6 +114,14 @@ Layouts live as anonymous Blade components in `resources/views/components/layout
 
 ## How billing works
 
+### Paddle Integration Checklist
+
+1. Create a Paddle account, and a sandbox account for testing.
+2. Create a Product in Paddle. 
+3. Set your default Payment link In Paddle
+4. Create a Client Side Token in Paddle.
+5. Open a checkout and test a payment link
+
 **Tenant model**: subscriptions belong to a `Workspace`, not a `User`. The `Laravel\Paddle\Billable` trait is on `App\Models\Workspace`.
 
 **Plans** are configured in `config/billing.php`:
@@ -141,11 +154,16 @@ The Paddle.js script is injected by `@paddleJS` (a Cashier directive) on the `/b
 public function currentPlan(): WorkspacePlan
 {
     if (! $this->subscribed()) {
-        return WorkspacePlan::Free;          // also handles post-grace
+        return WorkspacePlan::Free;
     }
-    if ($this->subscription()?->hasPrice($enterprisePriceId)) return WorkspacePlan::Enterprise;
     
-    if ($this->subscription()?->hasPrice($premiumPriceId))    return WorkspacePlan::Premium;
+    if ($this->subscription()?->hasPrice($enterprisePriceId)) {
+        return WorkspacePlan::Enterprise;
+    }
+    
+    if ($this->subscription()?->hasPrice($premiumPriceId)) {
+        return WorkspacePlan::Premium;
+    }
     
     return $this->plan ?? WorkspacePlan::Free;
 }
@@ -187,7 +205,7 @@ $user->can('manageMembers', $workspace)   // owner or admin
 
 Roles are stored on the `workspace_user` pivot's `role` column as `WorkspaceRole` enum values.
 
-## Plan gating
+## Plan Middleware
 
 Route middleware: `plan:<csv>` (alias for `App\Http\Middleware\RequiresPlan`).
 
@@ -231,7 +249,7 @@ Gaps to add when you next touch billing:
 - `SyncSubscriptionPlan` listener test (needs a seeded `Subscription` + `SubscriptionItem`)
 - Webhook signature verification with a recorded Paddle payload
 
-## Commands
+## Console Commands
 
 ```bash
 ./vendor/bin/sail up -d                   # start containers
