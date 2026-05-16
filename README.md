@@ -185,17 +185,123 @@ Layouts live as anonymous Blade components in `resources/views/components/layout
 
 ## How billing works
 
-### Paddle Integration Checklist
+### Paddle Setup (Step by Step)
 
-1. Create a Paddle account, and a sandbox account for testing.
-2. Create a Product in Paddle. 
-3. Set your default Payment link In Paddle
-4. Create a Client Side Token in Paddle.
-5. Open a checkout and test a payment link
-6. Configure the Paddle webhook URL in Paddle.
-   - Under `Developer Tools > Notifications`.
-   - The default Laravel cashier URL is `http://localhost/paddle/webhook`.
+#### 1. Create a Paddle account
 
+Go to [paddle.com](https://paddle.com) and sign up. Paddle operates as a Merchant of Record, so they handle global tax
+compliance on your behalf — no VAT/GST registrations required.
+
+#### 2. Switch to Sandbox for development
+
+In the Paddle dashboard, use the **Sandbox** toggle in the top-left corner (or navigate to
+`sandbox-vendors.paddle.com`). All development and testing should happen in sandbox mode. Set `PADDLE_SANDBOX=true` in
+`.env` while working locally.
+
+#### 3. Get your Seller ID
+
+- In the Paddle dashboard go to **Developer Tools > Authentication**.
+- Copy the **Seller ID** (a numeric value like `12345`).
+- Add it to `.env`:
+
+```env
+PADDLE_SELLER_ID=12345
+```
+
+#### 4. Create a Product and Prices
+
+Paddle uses a two-level hierarchy: **Products** contain one or more **Prices** (recurring billing intervals /
+currencies).
+
+1. Go to **Catalog > Products** and click **New product**.
+2. Give it a name (e.g. `ModernSaaS`) and save.
+3. With the product open, click **New price** for each plan:
+    - **Basic** — e.g. $10/month, `billing_cycle: monthly`
+    - **Pro** — e.g. $100/month
+    - **Enterprise** — e.g. $500/month
+4. After saving each price, copy the **Price ID** (format: `pri_xxxxxxxxxxxxxxxxxxxxxxxx`).
+5. Add them to `.env`:
+
+```env
+PADDLE_PRICE_BASIC=pri_xxxxxxxxxxxxxxxxxxxxxxxx
+PADDLE_PRICE_PRO=pri_xxxxxxxxxxxxxxxxxxxxxxxx
+PADDLE_PRICE_ENTERPRISE=pri_xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+These must match the keys in `config/billing.php`.
+
+#### 5. Create an API Key
+
+- Go to **Developer Tools > Authentication > API keys**.
+- Click **Generate API key**, give it a name, and copy the key (it's only shown once).
+- Add it to `.env`:
+
+```env
+PADDLE_API_KEY=your-paddle-api-key
+```
+
+#### 6. Create a Client-Side Token
+
+The client-side token is used by `Paddle.js` in the browser to open the checkout overlay. It is safe to expose to the
+frontend.
+
+- Go to **Developer Tools > Authentication > Client-side tokens**.
+- Click **Generate client-side token**, copy the value.
+- Add it to `.env`:
+
+```env
+PADDLE_CLIENT_SIDE_TOKEN=your-paddle-client-side-token
+```
+
+#### 7. Configure the Webhook
+
+Paddle sends subscription lifecycle events (created, updated, canceled, payment failed, etc.) to your webhook endpoint.
+Cashier Paddle verifies the signature automatically.
+
+1. Go to **Developer Tools > Notifications**.
+2. Click **New notification**.
+3. Set the **URL** to your publicly reachable webhook endpoint:
+    - Local dev via tunnel: `https://<your-tunnel>.trycloudflare.com/paddle/webhook`
+    - Production: `https://yourdomain.com/paddle/webhook`
+4. Under **Events**, select all `subscription.*` and `transaction.*` events (at minimum: `subscription.created`,
+   `subscription.updated`, `subscription.canceled`, `transaction.completed`, `transaction.payment_failed`).
+5. Save, then click the notification to reveal the **Secret key**.
+6. Add it to `.env`:
+
+```env
+PADDLE_WEBHOOK_SECRET=your-webhook-secret-key
+```
+
+> **Local dev tip**: To receive real webhooks on localhost, expose your app with
+`cloudflared tunnel --url http://localhost` and register the tunnel URL. Alternatively, use the built-in
+`paddle:fake-webhook` artisan command — no tunnel required (see [Testing webhooks locally](#testing-webhooks-locally)).
+
+#### 8. Complete `.env` configuration
+
+Your final Paddle block in `.env` should look like:
+
+```env
+PADDLE_SANDBOX=true
+PADDLE_SELLER_ID=12345
+PADDLE_API_KEY=your-paddle-api-key
+PADDLE_CLIENT_SIDE_TOKEN=your-paddle-client-side-token
+PADDLE_WEBHOOK_SECRET=your-webhook-secret-key
+PADDLE_PRICE_BASIC=pri_xxxxxxxxxxxxxxxxxxxxxxxx
+PADDLE_PRICE_PRO=pri_xxxxxxxxxxxxxxxxxxxxxxxx
+PADDLE_PRICE_ENTERPRISE=pri_xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Set `PADDLE_SANDBOX=false` and swap all sandbox credentials for live credentials when deploying to production.
+
+#### 9. Verify the setup
+
+1. Start the app: `./vendor/bin/sail up -d && npm run dev`
+2. Register a user and navigate to `/billing`.
+3. Click **Upgrade** on any plan — the Paddle overlay should open.
+4. Use a [Paddle sandbox test card](https://developer.paddle.com/concepts/payment-methods/credit-debit-card) to complete
+   the checkout.
+5. After payment, you should land on `/billing/pending`, then be redirected to `/billing` with the plan showing as
+   active once the `subscription.created` webhook lands.
 
 ### Tenant model: subscriptions belong to a `Workspace`, not a `User`. 
 
