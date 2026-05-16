@@ -38,9 +38,15 @@ class Workspace extends Model
     public function owner(): ?User
     {
         /** @var User|null */
-        return $this->members()
+        return $this
+            ->members()
             ->wherePivot('role', WorkspaceRole::Owner->value)
             ->first();
+    }
+
+    public function paddleEmail(): ?string
+    {
+        return $this->owner()?->email;
     }
 
     public function currentPlan(): WorkspacePlan
@@ -51,16 +57,14 @@ class Workspace extends Model
 
         $subscription = $this->subscription();
 
-        $enterprise = config()->string('billing.plans.enterprise.price_id');
-
-        if ($enterprise && $subscription?->hasPrice($enterprise)) {
-            return WorkspacePlan::Enterprise;
+        $premium = config()->string('billing.plans.premium.price_id');
+        if ($premium && $subscription?->hasPrice($premium)) {
+            return WorkspacePlan::Pro;
         }
 
-        $premium = config()->string('billing.plans.premium.price_id');
-
-        if ($premium && $subscription?->hasPrice($premium)) {
-            return WorkspacePlan::Premium;
+        $enterprise = config()->string('billing.plans.enterprise.price_id');
+        if ($enterprise && $subscription?->hasPrice($enterprise)) {
+            return WorkspacePlan::Enterprise;
         }
 
         return $this->plan ?? WorkspacePlan::Free;

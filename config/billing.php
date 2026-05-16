@@ -17,24 +17,26 @@ return [
 
     'plans' => [
 
-        'free' => [
-            'name' => 'Free',
-            'price_id' => null,
-            'amount' => 0,
+        'basic' => [
+            'name' => 'Basic',
+            'price_id' => env('PADDLE_PRICE_BASIC'),
+            'amount' => 1000,
             'features' => [
-                'Single workspace',
-                'Up to 3 members',
-                'Community support',
+                '10 conversions / month',
+                'PDF, Word doc, slide deck, spreadsheets',
+                'Fair rate limits',
             ],
         ],
 
-        'premium' => [
-            'name' => 'Premium',
-            'price_id' => env('PADDLE_PRICE_PREMIUM'),
-            'amount' => 1900,
+        'pro' => [
+            'name' => 'Pro',
+            'price_id' => env('PADDLE_PRICE_PRO'),
+            'amount' => 10000,
             'features' => [
                 'Everything in Free',
-                'Up to 25 members',
+                '100 conversions / month',
+                'Audio transcription * Coming Soon',
+                'Video transcription * Coming Soon',
                 'Priority email support',
             ],
         ],
@@ -42,10 +44,10 @@ return [
         'enterprise' => [
             'name' => 'Enterprise',
             'price_id' => env('PADDLE_PRICE_ENTERPRISE'),
-            'amount' => 9900,
+            'amount' => 50000,
             'features' => [
                 'Everything in Premium',
-                'Unlimited members',
+                '500 conversions / month',
                 'SSO + audit logs',
                 'Dedicated support',
             ],

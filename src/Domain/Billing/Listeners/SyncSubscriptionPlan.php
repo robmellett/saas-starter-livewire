@@ -45,14 +45,14 @@ class SyncSubscriptionPlan
 
     private function planFromSubscription(Subscription $subscription): ?WorkspacePlan
     {
-        $enterprise = config('billing.plans.enterprise.price_id');
+        $enterprise = config()->string('billing.plans.enterprise.price_id');
         if (is_string($enterprise) && $subscription->hasPrice($enterprise)) {
             return WorkspacePlan::Enterprise;
         }
 
-        $premium = config('billing.plans.premium.price_id');
-        if (is_string($premium) && $subscription->hasPrice($premium)) {
-            return WorkspacePlan::Premium;
+        $pro = config()->string('billing.plans.pro.price_id');
+        if (is_string($pro) && $subscription->hasPrice($pro)) {
+            return WorkspacePlan::Pro;
         }
 
         return null;

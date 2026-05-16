@@ -27,7 +27,8 @@ class WorkspacePolicy
 
     private function roleFor(User $user, Workspace $workspace): ?WorkspaceRole
     {
-        $pivot = $workspace->members()
+        $pivot = $workspace
+            ->members()
             ->where('users.id', $user->id)
             ->first()?->pivot;
 
