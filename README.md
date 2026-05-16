@@ -376,3 +376,10 @@ Tests use `LazilyRefreshDatabase` against the Sail Postgres container — each t
 npm run dev                                                      # Vite dev server (host-side)
 npm run build                                                    # production bundle
 ```
+
+## References
+
+- [Laravel Cashier](https://laravel.com/docs/billing)
+- [Laravel Cashier Paddle](https://github.com/laravel/cashier-paddle)
+- [Paddle Docs](https://developer.paddle.com/docs)
+- [Paddle Webhooks](https://developer.paddle.com/webhooks)
