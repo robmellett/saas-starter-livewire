@@ -38,12 +38,9 @@
             </p>
         @elseif ($subscription)
             <div class="mt-6 flex flex-wrap gap-3">
-                @if ($paymentMethodUrl)
-                    <a href="{{ $paymentMethodUrl }}" target="_blank" rel="noopener"
-                       @class([
-                           'rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800',
-                           'opacity-50 pointer-events-none' => ! $canManageBilling,
-                       ])>
+                @if ($canManageBilling)
+                    <a href="{{ route('billing.payment-method') }}" target="_blank" rel="noopener"
+                       class="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800">
                         Update payment method
                     </a>
                 @endif

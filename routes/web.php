@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Billing\PaymentMethodController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -9,4 +10,5 @@ Route::get('/', function () {
 Route::middleware(['auth'])->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
     Route::view('/billing', 'billing.index')->name('billing');
+    Route::get('/billing/payment-method', PaymentMethodController::class)->name('billing.payment-method');
 });
