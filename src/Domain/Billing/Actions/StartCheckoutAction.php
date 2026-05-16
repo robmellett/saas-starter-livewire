@@ -20,6 +20,6 @@ class StartCheckoutAction
         return $workspace
             ->subscribe($plan->priceId)
             ->customData(['workspace_id' => $workspace->id])
-            ->returnTo(route('billing'));
+            ->returnTo(route('billing.pending'));
     }
 }
