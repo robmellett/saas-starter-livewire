@@ -151,7 +151,9 @@ public function currentPlan(): WorkspacePlan
 }
 ```
 
-The `workspaces.plan` column is a denormalized cache, useful for `WHERE plan = 'premium'` queries. **Don't authorize off it** — Cashier's `subscribed()` is the source of truth, and `currentPlan()` wraps it.
+The `workspaces.plan` column is a denormalized cache, useful for `WHERE plan = 'premium'` queries. 
+
+**Don't authorize off it** — Cashier's `subscribed()` is the source of truth, and `currentPlan()` wraps it.
 
 **Cancellation**: `SubscriptionPanel::cancel()` calls `$subscription->cancel()`. Paddle keeps the subscription active until `ends_at`. The listener does NOT subscribe to `SubscriptionCanceled`, so `workspaces.plan` stays on the paid tier for the read-side cache. Once the grace period elapses, Cashier's `subscribed()` returns false → `currentPlan()` returns Free. No scheduled job needed.
 
@@ -214,7 +216,15 @@ The middleware reads `$user->currentWorkspace->currentPlan()`, so grace-period d
 ./vendor/bin/sail artisan test
 ```
 
-23 feature tests covering registration + workspace bootstrap, login, password reset, dashboard auth gate, billing page render, plan middleware, and the workspace policy. Tests use `LazilyRefreshDatabase` against the Sail Postgres container — each test runs in a transaction so data doesn't leak.
+Feature tests covering
+ - registration + workspace bootstrap, 
+ - login, 
+ - password reset,
+ - dashboard auth gate, 
+ - billing page render,
+ - plan middleware, and the workspace policy. 
+ 
+ - Tests use `LazilyRefreshDatabase` against the Sail Postgres container — each test runs in a transaction so data doesn't leak.
 
 Gaps to add when you next touch billing:
 - End-to-end checkout / cancel / resume via `Cashier::fake()`
@@ -230,10 +240,7 @@ Gaps to add when you next touch billing:
 ./vendor/bin/sail artisan tinker          # REPL
 ./vendor/bin/pint                         # format
 ./vendor/bin/phpstan analyse              # static analysis
+
 npm run dev                               # Vite dev server (host-side)
 npm run build                             # production bundle
 ```
-
-## License
-
-MIT.
