@@ -303,27 +303,6 @@ Set `PADDLE_SANDBOX=false` and swap all sandbox credentials for live credentials
 5. After payment, you should land on `/billing/pending`, then be redirected to `/billing` with the plan showing as
    active once the `subscription.created` webhook lands.
 
-### Tenant model: subscriptions belong to a `Workspace`, not a `User`. 
-
-The `Laravel\Paddle\Billable` trait is on `App\Models\Workspace`.
-
-### Plans are configured in `config/billing.php`:
-
-```
-Free       — no config entry; emitted by Workspace::currentPlan() when !subscribed()
-Basic      — env('PADDLE_PRICE_BASIC')
-Pro        — env('PADDLE_PRICE_PRO')
-Enterprise — env('PADDLE_PRICE_ENTERPRISE')
-```
-
-`Domain\Billing\Data\PlanData::catalog()` returns Basic/Pro/Enterprise as DTOs.
-
-### Workspace as billable:
-
-Cashier-Paddle's default `paddleEmail()` reads `$this->email`. 
-
-Workspace has no `email` column, so we override `Workspace::paddleEmail()` to return the owner user's email. Without that override, `Model::shouldBeStrict()` throws on the missing-attribute access.
-
 ### Checkout flow (Livewire + Paddle.js overlay):
 
 1. User on `/billing` sees `<livewire:billing.plan-picker />`
