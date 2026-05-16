@@ -27,7 +27,7 @@ class RequiresPlan
         );
 
         if (! in_array($current, $allowed, true)) {
-            abort(403, "This area requires plan(s): ".implode(', ', $plans).". Current plan: {$current->value}.");
+            abort(403, 'This area requires plan(s): '.implode(', ', $plans).". Current plan: {$current->value}.");
         }
 
         return $next($request);
