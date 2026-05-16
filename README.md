@@ -2,6 +2,8 @@
 A production-ready Laravel SaaS starter kit with Paddle billing baked in, so you can skip the boilerplate and ship your
 actual product.
 
+![Screenshot](docs/images/screenshot.png)
+
 ## Who is this for?
 Solo developers, small teams, and indie hackers who want to launch a subscription-based SaaS without spending the first
 two months wiring up auth, billing, teams, and webhooks. It assumes you're comfortable with Laravel — this isn't a
