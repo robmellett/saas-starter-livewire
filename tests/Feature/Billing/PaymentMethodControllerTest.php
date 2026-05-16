@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Billing;
 
 use App\Models\User;
@@ -69,14 +71,12 @@ class PaymentMethodControllerTest extends TestCase
 
         [$owner] = $this->ownerWithSubscription('sub_stale');
 
-        Log::spy();
+        Log::shouldReceive('warning')->once();
 
         $this->actingAs($owner)
             ->get(route('billing.payment-method'))
             ->assertRedirect(route('billing'))
             ->assertSessionHasErrors('subscription');
-
-        Log::shouldHaveReceived('warning')->once();
     }
 
     /**

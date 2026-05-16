@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Domain\Workspaces\Policies;
 
 use App\Models\User;
@@ -27,11 +29,11 @@ class WorkspacePolicy
 
     private function roleFor(User $user, Workspace $workspace): ?WorkspaceRole
     {
-        $pivot = $workspace
+        $member = $workspace
             ->members()
             ->where('users.id', $user->id)
-            ->first()?->pivot;
+            ->first();
 
-        return $pivot ? WorkspaceRole::from($pivot->role) : null;
+        return $member?->pivot->role;
     }
 }

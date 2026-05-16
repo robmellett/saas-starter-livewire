@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Domain\Users\Actions;
 
 use App\Models\User;
@@ -14,7 +16,8 @@ class CreateNewUser implements CreatesNewUsers
 {
     public function __construct(
         private readonly CreatePersonalWorkspaceAction $createPersonalWorkspace,
-    ) {}
+    ) {
+    }
 
     /**
      * @param  array<string, string>  $input

@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Billing;
 
 use App\Models\User;
-use App\Models\Workspace;
 use Domain\Workspaces\Actions\CreatePersonalWorkspaceAction;
 use Domain\Workspaces\Enums\WorkspaceRole;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;

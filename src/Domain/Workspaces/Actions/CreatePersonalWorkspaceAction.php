@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Domain\Workspaces\Actions;
 
 use App\Models\User;
@@ -30,7 +32,7 @@ class CreatePersonalWorkspaceAction
 
     private function personalWorkspaceName(User $user): string
     {
-        $firstName = trim(explode(' ', $user->name)[0] ?? $user->name);
+        $firstName = trim(explode(' ', $user->name)[0]);
 
         return $firstName !== '' ? "{$firstName}'s Workspace" : 'My Workspace';
     }

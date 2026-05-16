@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use App\Models\Workspace;
 use Domain\Workspaces\Enums\WorkspacePlan;
 use Domain\Workspaces\Enums\WorkspaceRole;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -45,12 +48,12 @@ class RegistrationTest extends TestCase
         $user = User::where('email', 'mark@example.test')->firstOrFail();
         $workspace = $user->currentWorkspace;
 
-        $this->assertNotNull($workspace, 'current_workspace_id should be set');
+        $this->assertInstanceOf(Workspace::class, $workspace, 'current_workspace_id should be set');
         $this->assertSame("Mark's Workspace", $workspace->name);
         $this->assertSame(WorkspacePlan::Free, $workspace->plan);
 
-        $pivot = $user->workspaces()->where('workspaces.id', $workspace->id)->first()?->pivot;
-        $this->assertSame(WorkspaceRole::Owner->value, $pivot?->role);
+        $membership = $user->workspaces()->where('workspaces.id', $workspace->id)->first()?->pivot;
+        $this->assertSame(WorkspaceRole::Owner, $membership?->role);
     }
 
     public function test_registration_validates_required_fields(): void

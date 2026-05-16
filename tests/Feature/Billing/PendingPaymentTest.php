@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Billing;
 
 use App\Livewire\Billing\PendingPayment;
