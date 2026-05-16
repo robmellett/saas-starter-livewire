@@ -1,58 +1,267 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel SaaS Starter Livewire
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel 13 + Livewire 4 app with workspace-scoped Paddle billing.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **PHP** 8.3+ (developed on 8.4) · **Laravel** 13 · **Livewire** 4
+- **DB** PostgreSQL via Laravel Sail in dev; SQLite in-memory for tests
+- **Frontend** Vite 8 + TailwindCSS 4 + plain Blade (no Inertia / Filament)
+- **Auth** Laravel Fortify (custom Blade views, no email verification, 2FA columns present but no UI)
+- **Billing** Laravel Cashier Paddle (Paddle Billing — current product, not Classic)
+- **DTOs** spatie/laravel-data
+- **Quality** Pint, Larastan, PHPUnit 12
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Architecture (Laravel Beyond CRUD)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Domain logic lives inside `src/Domain/<BoundedContext>/` tree. 
 
-## Learning Laravel
+Framework wiring (controllers, providers, middleware) stays in `app/`. 
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Eloquent models stay in `app/Models/`.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```
+app/
+├── Http/Middleware/         RequiresPlan
+├── Livewire/Billing/        PlanPicker, SubscriptionPanel
+├── Models/                  User, Workspace
+└── Providers/               AppServiceProvider, FortifyServiceProvider
+src/Domain/
+├── Billing/
+│   ├── Actions/             StartCheckoutAction
+│   ├── Data/                PlanData (DTO from config/billing.php)
+│   └── Listeners/           SyncSubscriptionPlan
+├── Users/
+│   ├── Actions/             CreateNewUser, ResetUserPassword, UpdateUserPassword,
+│   │                        UpdateUserProfileInformation, PasswordValidationRules
+│   └── Data/                RegisterUserData
+└── Workspaces/
+    ├── Actions/             CreatePersonalWorkspaceAction
+    ├── Enums/               WorkspacePlan, WorkspaceRole
+    └── Policies/            WorkspacePolicy
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Composer autoload: 
+ - `App\\: app/`, 
+ - `Domain\\: src/Domain/`, 
+ - `Support\\: src/Support/`
 
-## Contributing
+## Setup
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+git clone <repo>
+cd saas-starter-livewire
 
-## Code of Conduct
+cp .env.example .env
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# Fill in PADDLE_* vars (see Billing section for more information)
 
-## Security Vulnerabilities
+composer install
+npm install
+php artisan key:generate
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan migrate
 
-## License
+npm run dev   # in another terminal
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Open <http://localhost> · Mailpit (password-reset emails) at <http://localhost:8025>.
+
+## Routes
+
+| Method | Path | Name | Notes |
+|---|---|---|---|
+| GET | `/` | — | Welcome page |
+| GET | `/up` | — | Laravel health check |
+| **Auth (Fortify)** | | | |
+| GET | `/login` | `login` | Custom Blade view |
+| POST | `/login` | `login.store` | |
+| POST | `/logout` | `logout` | |
+| GET | `/register` | `register` | Creates user + personal workspace |
+| POST | `/register` | `register.store` | |
+| GET | `/forgot-password` | `password.request` | |
+| POST | `/forgot-password` | `password.email` | Sends reset email |
+| GET | `/reset-password/{token}` | `password.reset` | |
+| POST | `/reset-password` | `password.update` | |
+| PUT | `/user/profile-information` | `user-profile-information.update` | |
+| PUT | `/user/password` | `user-password.update` | |
+| GET / POST | `/user/confirm-password` | `password.confirm[.store]` | |
+| **2FA (routes exist, no UI yet)** | | | |
+| POST / DELETE | `/user/two-factor-authentication` | `two-factor.enable/disable` | |
+| GET | `/two-factor-challenge` | `two-factor.login` | |
+| **App** | | | |
+| GET | `/dashboard` | `dashboard` | Auth required; shows current workspace |
+| GET | `/billing` | `billing` | Auth required; PlanPicker + SubscriptionPanel |
+| **Billing webhooks** | | | |
+| POST | `/paddle/webhook` | `cashier.webhook` | Paddle webhook receiver; signature verified by Cashier |
+| **Livewire internals** | | | |
+| POST | `/livewire-*/update` | `default-livewire.update` | Component hydration |
+| various | `/livewire-*/...` | — | Asset / file upload endpoints |
+
+Run `./vendor/bin/sail artisan route:list` for the live list.
+
+## How auth works
+
+Fortify owns the routes; we override behavior via Action classes and view callbacks.
+
+1. **`Domain\Users\Actions\CreateNewUser`** is bound to Fortify's `CreatesNewUsers` contract in `App\Providers\FortifyServiceProvider::boot()`. It validates input through `Domain\Users\Data\RegisterUserData` (Spatie laravel-data with rules attached to the DTO), creates the `User`, and within the same DB transaction invokes `Domain\Workspaces\Actions\CreatePersonalWorkspaceAction` which:
+   - Creates a `Workspace` named e.g. `"Mark's Workspace"`
+   - Attaches the user to the `workspace_user` pivot with role `owner`
+   - Sets `users.current_workspace_id` to the new workspace
+2. Login / logout / forgot-password / reset are all stock Fortify routes; we provide the views via `Fortify::loginView(fn () => view('auth.login'))` etc.
+3. Email verification is **disabled** in `config/fortify.php`. 2FA columns exist on `users` but no UI ships yet — flip features off if you don't want the routes exposed.
+
+Layouts live as anonymous Blade components in `resources/views/components/layouts/`:
+- `guest.blade.php` — unauthenticated screens
+- `app.blade.php` — authenticated screens (includes `@livewireStyles`, `@livewireScripts`, `@stack('head')`, `@stack('scripts')`)
+
+## How billing works
+
+### Paddle Integration Checklist
+
+1. Create a Paddle account, and a sandbox account for testing.
+2. Create a Product in Paddle. 
+3. Set your default Payment link In Paddle
+4. Create a Client Side Token in Paddle.
+5. Open a checkout and test a payment link
+
+**Tenant model**: subscriptions belong to a `Workspace`, not a `User`. The `Laravel\Paddle\Billable` trait is on `App\Models\Workspace`.
+
+**Plans** are configured in `config/billing.php`:
+
+```
+Free       — no config entry; emitted by Workspace::currentPlan() when !subscribed()
+Basic      — env('PADDLE_PRICE_BASIC')
+Pro        — env('PADDLE_PRICE_PRO')
+Enterprise — env('PADDLE_PRICE_ENTERPRISE')
+```
+
+`Domain\Billing\Data\PlanData::catalog()` returns Basic/Pro/Enterprise as DTOs. `PlanData::fromKey('pro')` returns one.
+
+**Workspace as billable**: Cashier-Paddle's default `paddleEmail()` reads `$this->email`. Workspace has no `email` column, so we override `Workspace::paddleEmail()` to return the owner user's email. Without that override, `Model::shouldBeStrict()` throws on the missing-attribute access.
+
+**Checkout flow** (Livewire + Paddle.js overlay):
+
+1. User on `/billing` sees `<livewire:billing.plan-picker />`
+2. Clicks "Upgrade to Pro" → fires `wire:click="subscribe('pro')"` on `App\Livewire\Billing\PlanPicker`
+3. Component authorizes (`manageBilling` policy = Owner only), calls `Domain\Billing\Actions\StartCheckoutAction` which builds a `Laravel\Paddle\Checkout` via `$workspace->subscribe($priceId)` (creating the Paddle customer record on first use; idempotent thereafter)
+4. Component dispatches a browser event `paddle-checkout` with the checkout config
+5. JS handler in `resources/views/billing/index.blade.php` calls `Paddle.Checkout.open(config)`, the Paddle overlay opens
+6. User completes payment in the overlay
+7. Paddle sends webhooks to `/paddle/webhook`
+8. Cashier creates `subscriptions` + `subscription_items` rows, dispatches `Laravel\Paddle\Events\SubscriptionCreated`
+9. `Domain\Billing\Listeners\SyncSubscriptionPlan` writes `workspaces.plan` from the subscription's price ID
+
+The Paddle.js script is injected by `@paddleJS` (a Cashier directive) on the `/billing` page only — we don't load it globally.
+
+**Reading the current plan**: always call `$workspace->currentPlan()`, never the raw `plan` column.
+
+```php
+public function currentPlan(): WorkspacePlan
+{
+    if (! $this->subscribed()) {
+        return WorkspacePlan::Free;
+    }
+
+    if ($this->subscription()?->hasPrice($enterprisePriceId)) return WorkspacePlan::Enterprise;
+    if ($this->subscription()?->hasPrice($proPriceId))        return WorkspacePlan::Pro;
+    if ($this->subscription()?->hasPrice($basicPriceId))      return WorkspacePlan::Basic;
+
+    return $this->plan ?? WorkspacePlan::Free;
+}
+```
+
+The `workspaces.plan` column is a denormalized cache, useful for `WHERE plan = 'pro'` queries.
+
+**Don't authorize off it** — Cashier's `subscribed()` is the source of truth, and `currentPlan()` wraps it.
+
+**Cancellation**: `SubscriptionPanel::cancel()` calls `$subscription->cancel()`. Paddle keeps the subscription active until `ends_at`. The listener does NOT subscribe to `SubscriptionCanceled`, so `workspaces.plan` stays on the paid tier for the read-side cache. Once the grace period elapses, Cashier's `subscribed()` returns false → `currentPlan()` returns Free. No scheduled job needed.
+
+**Resume**: during grace period, `SubscriptionPanel::resume()` calls `$subscription->stopCancelation()` (NOT `resume()` — that method is for *paused* subscriptions and throws `LogicException` on canceled ones).
+
+**Update payment method**: link to `$subscription->paymentMethodUpdateUrl()` (Paddle-hosted page).
+
+### Required env vars
+
+```
+PADDLE_SANDBOX=true               # false for production
+PADDLE_SELLER_ID=
+PADDLE_API_KEY=
+PADDLE_CLIENT_SIDE_TOKEN=         # used by Paddle.js
+PADDLE_WEBHOOK_SECRET=
+PADDLE_PRICE_BASIC=pri_xxx
+PADDLE_PRICE_PRO=pri_xxx
+PADDLE_PRICE_ENTERPRISE=pri_xxx
+```
+
+To test webhooks locally, expose the app to the public internet (e.g. `cloudflared tunnel --url http://localhost`) and register the tunnel URL + `/paddle/webhook` in Paddle's dashboard.
+
+## Authorization
+
+`Domain\Workspaces\Policies\WorkspacePolicy` is auto-discovered via `#[UsePolicy]` on `Workspace`:
+
+```php
+$user->can('view', $workspace)            // member?
+$user->can('manageBilling', $workspace)   // owner only
+$user->can('manageMembers', $workspace)   // owner or admin
+```
+
+Roles are stored on the `workspace_user` pivot's `role` column as `WorkspaceRole` enum values.
+
+## Plan Middleware
+
+Route middleware: `plan:<csv>` (alias for `App\Http\Middleware\RequiresPlan`).
+
+```php
+Route::middleware(['auth', 'plan:pro,enterprise'])->group(function () {
+    // routes only available to Pro and Enterprise workspaces
+});
+
+Route::middleware(['auth', 'plan:enterprise'])->group(function () {
+    // enterprise-only
+});
+```
+
+The middleware reads `$user->currentWorkspace->currentPlan()`, so grace-period downgrades happen automatically.
+
+## Quality / dev defaults
+
+`AppServiceProvider::boot()` wires:
+- `Model::shouldBeStrict()` in non-production — lazy loading, missing attributes, and silently-discarded attributes all throw. Fix the call site rather than relax the rule.
+- `DB::prohibitDestructiveCommands()` in production — blocks `migrate:fresh`, `db:wipe`, etc.
+- `Factory::guessFactoryNamesUsing()` — keeps factory resolution working as we add more models.
+
+## Testing
+
+```bash
+./vendor/bin/sail artisan test
+```
+
+Feature tests covering:
+ - registration + workspace bootstrap
+ - login
+ - password reset
+ - dashboard auth gate
+ - billing page render
+ - plan middleware + workspace policy
+ - `SyncSubscriptionPlan` listener (Pro/Enterprise/Updated/unknown-price fallback)
+ - `PlanPicker` Livewire checkout dispatch (via `Cashier::fake()`)
+ - `SubscriptionPanel` cancel/resume/error paths (via `Cashier::fake()`)
+ - Paddle webhook signature verification (valid, missing, tampered, stale-timestamp)
+
+Tests use `LazilyRefreshDatabase` against the Sail Postgres container — each test runs in a transaction so data doesn't leak.
+
+## Console Commands
+
+```bash
+./vendor/bin/sail up -d                   # start containers
+./vendor/bin/sail artisan migrate         # apply migrations
+./vendor/bin/sail artisan test            # run the suite
+./vendor/bin/sail artisan tinker          # REPL
+./vendor/bin/pint                         # format
+./vendor/bin/phpstan analyse              # static analysis
+
+npm run dev                               # Vite dev server (host-side)
+npm run build                             # production bundle
+```
