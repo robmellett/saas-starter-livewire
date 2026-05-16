@@ -242,7 +242,7 @@ The Paddle.js script is injected by `@paddleJS` (a Cashier directive) on the `/b
 
 This will return the current plan for the workspace, taking into account the subscription status and price IDs. It ensures that the plan is always up-to-date and accurate.
 
-You can configure additional plans in `config/billing.php` and `Domain\Billing\Data\PlanData::catalog()`.
+You can configure additional plans in `config/billing.php`. The `price_id` column is configured in the Paddle.com Product Catalogue dashboard.
 
 ```php
 # config/billing.php
