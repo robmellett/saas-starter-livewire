@@ -70,12 +70,14 @@ Composer autoload (already wired): `App\\: app/`, `Domain\\: src/Domain/`, `Supp
 ## Billing (Cashier Paddle)
 
 - **Billable tenant** is `App\Models\Workspace`, NOT `User`. The Paddle `Billable` trait sits on Workspace because subscriptions belong to workspaces, not individuals.
-- **Plans** (`Free`, `Premium`, `Enterprise`) are defined in `config/billing.php` and surfaced via `Domain\Billing\Data\PlanData::catalog()` / `::fromKey()`.
+- **Plans** (`Free`, `Basic`, `Pro`, `Enterprise`) are defined in `config/billing.php` and surfaced via `Domain\Billing\Data\PlanData::catalog()` / `::fromKey()`. Only `Basic`, `Pro`, and `Enterprise` are paid (have Paddle price IDs); `Free` is the absence of a subscription and is not a config entry.
 - **`Workspace::currentPlan()`** is the canonical read: returns `Free` when `!subscribed()` (so grace-period expiry auto-downgrades), otherwise resolves the price-id to a `WorkspacePlan` enum. The `workspaces.plan` column is a denormalized cache; never trust it raw for authorization.
-- **`Domain\Billing\Listeners\SyncSubscriptionPlan`** updates `workspaces.plan` on `SubscriptionCreated|Updated`. It deliberately does NOT listen to `SubscriptionCanceled` — grace period is honored by Cashier's `subscribed()` returning true until `ends_at` passes.
+- **`Workspace::paddleEmail()`** returns the owner user's email — needed because Workspace has no `email` column, and `Model::shouldBeStrict()` would throw on the trait's default `$this->email` access.
+- **`Domain\Billing\Listeners\SyncSubscriptionPlan`** updates `workspaces.plan` on `SubscriptionCreated|Updated`. It deliberately does NOT listen to `SubscriptionCanceled` — grace period is honored by Cashier's `subscribed()` returning true until `ends_at` passes. Unrecognized prices fall back to `Free`.
 - **Webhook**: `POST /paddle/webhook` (Cashier handles signature verification automatically).
 - **Authorization**: `WorkspacePolicy::manageBilling()` — only `WorkspaceRole::Owner` can subscribe/cancel/resume. Use `$user->can('manageBilling', $workspace)`.
-- **Feature gating**: `Route::middleware('plan:premium,enterprise')` via the `RequiresPlan` middleware (aliased in `bootstrap/app.php`).
+- **Cancel/resume**: `SubscriptionPanel::cancel()` calls `$subscription->cancel()`; `SubscriptionPanel::resume()` calls `$subscription->stopCancelation()` (NOT `resume()` — that's for *paused* subs and throws on canceled ones).
+- **Feature gating**: `Route::middleware('plan:pro,enterprise')` via the `RequiresPlan` middleware (aliased in `bootstrap/app.php`).
 
 ### Required env vars (`.env`)
 
@@ -85,7 +87,8 @@ PADDLE_SELLER_ID=
 PADDLE_API_KEY=
 PADDLE_CLIENT_SIDE_TOKEN=
 PADDLE_WEBHOOK_SECRET=
-PADDLE_PRICE_PREMIUM=
+PADDLE_PRICE_BASIC=
+PADDLE_PRICE_PRO=
 PADDLE_PRICE_ENTERPRISE=
 ```
 

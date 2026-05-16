@@ -14,7 +14,11 @@ A Laravel 13 + Livewire 4 app with workspace-scoped Paddle billing.
 
 ## Architecture (Laravel Beyond CRUD)
 
-Domain logic lives inside `src/Domain/<BoundedContext>/` tree. Framework wiring (controllers, providers, middleware) stays in `app/`. Eloquent models stay in `app/Models/`.
+Domain logic lives inside `src/Domain/<BoundedContext>/` tree. 
+
+Framework wiring (controllers, providers, middleware) stays in `app/`. 
+
+Eloquent models stay in `app/Models/`.
 
 ```
 app/
@@ -127,17 +131,20 @@ Layouts live as anonymous Blade components in `resources/views/components/layout
 **Plans** are configured in `config/billing.php`:
 
 ```
-Free       — no Paddle price; default
-Premium    — env('PADDLE_PRICE_PREMIUM')
+Free       — no config entry; emitted by Workspace::currentPlan() when !subscribed()
+Basic      — env('PADDLE_PRICE_BASIC')
+Pro        — env('PADDLE_PRICE_PRO')
 Enterprise — env('PADDLE_PRICE_ENTERPRISE')
 ```
 
-`Domain\Billing\Data\PlanData::catalog()` returns all three as DTOs. `PlanData::fromKey('premium')` returns one.
+`Domain\Billing\Data\PlanData::catalog()` returns Basic/Pro/Enterprise as DTOs. `PlanData::fromKey('pro')` returns one.
+
+**Workspace as billable**: Cashier-Paddle's default `paddleEmail()` reads `$this->email`. Workspace has no `email` column, so we override `Workspace::paddleEmail()` to return the owner user's email. Without that override, `Model::shouldBeStrict()` throws on the missing-attribute access.
 
 **Checkout flow** (Livewire + Paddle.js overlay):
 
 1. User on `/billing` sees `<livewire:billing.plan-picker />`
-2. Clicks "Upgrade to Premium" → fires `wire:click="subscribe('premium')"` on `App\Livewire\Billing\PlanPicker`
+2. Clicks "Upgrade to Pro" → fires `wire:click="subscribe('pro')"` on `App\Livewire\Billing\PlanPicker`
 3. Component authorizes (`manageBilling` policy = Owner only), calls `Domain\Billing\Actions\StartCheckoutAction` which builds a `Laravel\Paddle\Checkout` via `$workspace->subscribe($priceId)` (creating the Paddle customer record on first use; idempotent thereafter)
 4. Component dispatches a browser event `paddle-checkout` with the checkout config
 5. JS handler in `resources/views/billing/index.blade.php` calls `Paddle.Checkout.open(config)`, the Paddle overlay opens
@@ -156,26 +163,22 @@ public function currentPlan(): WorkspacePlan
     if (! $this->subscribed()) {
         return WorkspacePlan::Free;
     }
-    
-    if ($this->subscription()?->hasPrice($enterprisePriceId)) {
-        return WorkspacePlan::Enterprise;
-    }
-    
-    if ($this->subscription()?->hasPrice($premiumPriceId)) {
-        return WorkspacePlan::Premium;
-    }
-    
+
+    if ($this->subscription()?->hasPrice($enterprisePriceId)) return WorkspacePlan::Enterprise;
+    if ($this->subscription()?->hasPrice($proPriceId))        return WorkspacePlan::Pro;
+    if ($this->subscription()?->hasPrice($basicPriceId))      return WorkspacePlan::Basic;
+
     return $this->plan ?? WorkspacePlan::Free;
 }
 ```
 
-The `workspaces.plan` column is a denormalized cache, useful for `WHERE plan = 'premium'` queries. 
+The `workspaces.plan` column is a denormalized cache, useful for `WHERE plan = 'pro'` queries.
 
 **Don't authorize off it** — Cashier's `subscribed()` is the source of truth, and `currentPlan()` wraps it.
 
 **Cancellation**: `SubscriptionPanel::cancel()` calls `$subscription->cancel()`. Paddle keeps the subscription active until `ends_at`. The listener does NOT subscribe to `SubscriptionCanceled`, so `workspaces.plan` stays on the paid tier for the read-side cache. Once the grace period elapses, Cashier's `subscribed()` returns false → `currentPlan()` returns Free. No scheduled job needed.
 
-**Resume**: during grace period, `SubscriptionPanel::resume()` calls `$subscription->resume()`.
+**Resume**: during grace period, `SubscriptionPanel::resume()` calls `$subscription->stopCancelation()` (NOT `resume()` — that method is for *paused* subscriptions and throws `LogicException` on canceled ones).
 
 **Update payment method**: link to `$subscription->paymentMethodUpdateUrl()` (Paddle-hosted page).
 
@@ -187,7 +190,8 @@ PADDLE_SELLER_ID=
 PADDLE_API_KEY=
 PADDLE_CLIENT_SIDE_TOKEN=         # used by Paddle.js
 PADDLE_WEBHOOK_SECRET=
-PADDLE_PRICE_PREMIUM=pri_xxx
+PADDLE_PRICE_BASIC=pri_xxx
+PADDLE_PRICE_PRO=pri_xxx
 PADDLE_PRICE_ENTERPRISE=pri_xxx
 ```
 
@@ -210,8 +214,8 @@ Roles are stored on the `workspace_user` pivot's `role` column as `WorkspaceRole
 Route middleware: `plan:<csv>` (alias for `App\Http\Middleware\RequiresPlan`).
 
 ```php
-Route::middleware(['auth', 'plan:premium,enterprise'])->group(function () {
-    // routes only available to paid workspaces
+Route::middleware(['auth', 'plan:pro,enterprise'])->group(function () {
+    // routes only available to Pro and Enterprise workspaces
 });
 
 Route::middleware(['auth', 'plan:enterprise'])->group(function () {
@@ -234,20 +238,19 @@ The middleware reads `$user->currentWorkspace->currentPlan()`, so grace-period d
 ./vendor/bin/sail artisan test
 ```
 
-Feature tests covering
- - registration + workspace bootstrap, 
- - login, 
- - password reset,
- - dashboard auth gate, 
- - billing page render,
- - plan middleware, and the workspace policy. 
- 
- - Tests use `LazilyRefreshDatabase` against the Sail Postgres container — each test runs in a transaction so data doesn't leak.
+Feature tests covering:
+ - registration + workspace bootstrap
+ - login
+ - password reset
+ - dashboard auth gate
+ - billing page render
+ - plan middleware + workspace policy
+ - `SyncSubscriptionPlan` listener (Pro/Enterprise/Updated/unknown-price fallback)
+ - `PlanPicker` Livewire checkout dispatch (via `Cashier::fake()`)
+ - `SubscriptionPanel` cancel/resume/error paths (via `Cashier::fake()`)
+ - Paddle webhook signature verification (valid, missing, tampered, stale-timestamp)
 
-Gaps to add when you next touch billing:
-- End-to-end checkout / cancel / resume via `Cashier::fake()`
-- `SyncSubscriptionPlan` listener test (needs a seeded `Subscription` + `SubscriptionItem`)
-- Webhook signature verification with a recorded Paddle payload
+Tests use `LazilyRefreshDatabase` against the Sail Postgres container — each test runs in a transaction so data doesn't leak.
 
 ## Console Commands
 

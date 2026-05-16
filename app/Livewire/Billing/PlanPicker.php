@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Billing;
 
+use App\Models\User;
 use App\Models\Workspace;
 use Domain\Billing\Actions\StartCheckoutAction;
 use Domain\Billing\Data\PlanData;
@@ -16,7 +17,7 @@ class PlanPicker extends Component
 
     public function mount(): void
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
         $workspace = $user->currentWorkspace;
 

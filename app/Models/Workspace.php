@@ -57,14 +57,19 @@ class Workspace extends Model
 
         $subscription = $this->subscription();
 
-        $premium = config()->string('billing.plans.premium.price_id');
-        if ($premium && $subscription?->hasPrice($premium)) {
+        $enterprise = config()->string('billing.plans.enterprise.price_id');
+        if ($enterprise !== '' && $subscription?->hasPrice($enterprise)) {
+            return WorkspacePlan::Enterprise;
+        }
+
+        $pro = config()->string('billing.plans.pro.price_id');
+        if ($pro !== '' && $subscription?->hasPrice($pro)) {
             return WorkspacePlan::Pro;
         }
 
-        $enterprise = config()->string('billing.plans.enterprise.price_id');
-        if ($enterprise && $subscription?->hasPrice($enterprise)) {
-            return WorkspacePlan::Enterprise;
+        $basic = config()->string('billing.plans.basic.price_id');
+        if ($basic !== '' && $subscription?->hasPrice($basic)) {
+            return WorkspacePlan::Basic;
         }
 
         return $this->plan ?? WorkspacePlan::Free;

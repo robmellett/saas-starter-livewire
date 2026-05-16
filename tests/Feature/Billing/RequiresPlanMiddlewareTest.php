@@ -16,7 +16,7 @@ class RequiresPlanMiddlewareTest extends TestCase
     {
         parent::setUp();
 
-        Route::middleware(['web', 'auth', 'plan:premium,enterprise'])
+        Route::middleware(['web', 'auth', 'plan:pro,enterprise'])
             ->get('/paid-only', fn () => 'paid')
             ->name('paid-only');
 
@@ -25,7 +25,7 @@ class RequiresPlanMiddlewareTest extends TestCase
             ->name('free-only');
     }
 
-    public function test_free_workspace_blocked_from_premium_route(): void
+    public function test_free_workspace_blocked_from_paid_route(): void
     {
         $user = $this->makeUserWithWorkspace();
 

@@ -19,7 +19,8 @@ class BillingPageTest extends TestCase
     public function test_billing_page_renders_for_authenticated_user_with_workspace(): void
     {
         config([
-            'billing.plans.premium.price_id' => 'pri_test_premium',
+            'billing.plans.basic.price_id' => 'pri_test_basic',
+            'billing.plans.pro.price_id' => 'pri_test_pro',
             'billing.plans.enterprise.price_id' => 'pri_test_enterprise',
             'cashier.sandbox' => true,
         ]);
@@ -31,8 +32,8 @@ class BillingPageTest extends TestCase
             ->get('/billing')
             ->assertOk()
             ->assertSee('Billing')
-            ->assertSee('Free')
-            ->assertSee('Premium')
+            ->assertSee('Basic')
+            ->assertSee('Pro')
             ->assertSee('Enterprise');
     }
 }

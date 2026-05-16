@@ -24,9 +24,14 @@ class WorkspaceFactory extends Factory
         ];
     }
 
-    public function premium(): static
+    public function basic(): static
     {
-        return $this->state(['plan' => WorkspacePlan::Premium]);
+        return $this->state(['plan' => WorkspacePlan::Basic]);
+    }
+
+    public function pro(): static
+    {
+        return $this->state(['plan' => WorkspacePlan::Pro]);
     }
 
     public function enterprise(): static

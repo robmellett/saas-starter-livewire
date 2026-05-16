@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Billing;
 
+use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,7 @@ class SubscriptionPanel extends Component
 
     public function mount(): void
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
         $workspace = $user->currentWorkspace;
 
@@ -51,7 +52,7 @@ class SubscriptionPanel extends Component
             return;
         }
 
-        $subscription->resume();
+        $subscription->stopCancelation();
         $this->workspace->refresh();
     }
 
