@@ -190,11 +190,11 @@ Layouts live as anonymous Blade components in `resources/views/components/layout
 4. Create a Client Side Token in Paddle.
 5. Open a checkout and test a payment link
 
-## Tenant model: subscriptions belong to a `Workspace`, not a `User`. 
+### Tenant model: subscriptions belong to a `Workspace`, not a `User`. 
 
 The `Laravel\Paddle\Billable` trait is on `App\Models\Workspace`.
 
-## Plans are configured in `config/billing.php`:
+### Plans are configured in `config/billing.php`:
 
 ```
 Free       — no config entry; emitted by Workspace::currentPlan() when !subscribed()
@@ -205,13 +205,13 @@ Enterprise — env('PADDLE_PRICE_ENTERPRISE')
 
 `Domain\Billing\Data\PlanData::catalog()` returns Basic/Pro/Enterprise as DTOs.
 
-## Workspace as billable ##:
+### Workspace as billable:
 
 Cashier-Paddle's default `paddleEmail()` reads `$this->email`. 
 
 Workspace has no `email` column, so we override `Workspace::paddleEmail()` to return the owner user's email. Without that override, `Model::shouldBeStrict()` throws on the missing-attribute access.
 
-## Checkout flow (Livewire + Paddle.js overlay):
+### Checkout flow (Livewire + Paddle.js overlay):
 
 1. User on `/billing` sees `<livewire:billing.plan-picker />`
 2. Clicks "Upgrade to Pro" → fires `wire:click="subscribe('pro')"` on `App\Livewire\Billing\PlanPicker`
@@ -227,7 +227,7 @@ Workspace has no `email` column, so we override `Workspace::paddleEmail()` to re
 
 The Paddle.js script is injected by `@paddleJS` (a Cashier directive) on the `/billing` page only — we don't load it globally.
 
-## Workspace plan logic
+### Workspace plan logic
 
 **Reading the current plan**: always call `$workspace->currentPlan()`, never the raw `plan` column.
 
@@ -328,7 +328,7 @@ Route::middleware(['auth', 'plan:enterprise'])->group(function () {
 
 The middleware reads `$user->currentWorkspace->currentPlan()`, so grace-period downgrades happen automatically.
 
-## Quality / dev defaults
+## Quality of life dev defaults
 
 `AppServiceProvider::boot()` wires:
 - `Model::shouldBeStrict()` in non-production — lazy loading, missing attributes, and silently-discarded attributes all throw. Fix the call site rather than relax the rule.
