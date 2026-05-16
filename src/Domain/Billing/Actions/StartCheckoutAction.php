@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Domain\Billing\Actions;
 
 use App\Models\Workspace;

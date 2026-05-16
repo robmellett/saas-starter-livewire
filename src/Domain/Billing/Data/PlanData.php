@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Domain\Billing\Data;
 
 use Domain\Workspaces\Enums\WorkspacePlan;
@@ -16,7 +18,8 @@ class PlanData extends Data
         public ?string $priceId,
         public int $amountInCents,
         public array $features,
-    ) {}
+    ) {
+    }
 
     public function isPaid(): bool
     {

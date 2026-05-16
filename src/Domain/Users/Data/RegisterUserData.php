@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Domain\Users\Data;
 
 use App\Models\User;
@@ -14,7 +16,8 @@ class RegisterUserData extends Data
         public string $name,
         public string $email,
         public string $password,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array<string, array<int, mixed>>
