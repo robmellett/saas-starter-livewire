@@ -1,0 +1,37 @@
+<svg width="400" height="400" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .tile { fill: #FAFAF7; stroke: #1F1F1C; stroke-width: 1.2; }
+    .ink-thin { stroke: #1F1F1C; fill: none; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+    .accent-red { fill: #C84A3B; }
+    .accent-blue { fill: #3D5A9C; }
+    .accent-green { fill: #4F8A5C; }
+    .accent-amber { fill: #D4A24C; }
+    .accent-purple { fill: #6B4E8C; }
+    .accent-teal { fill: #3D8A8A; }
+    .label { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 500; fill: #1F1F1C; text-anchor: middle; letter-spacing: 0.3px; text-transform: uppercase; }
+  </style>
+  <rect class="tile" width="200" height="200" rx="6"/>
+  <rect x="30" y="40" width="140" height="120" rx="4" fill="#FAFAF7" stroke="#1F1F1C" stroke-width="1.2"/>
+  <rect x="30" y="40" width="140" height="14" rx="4" class="accent-red"/>
+  <rect x="30" y="50" width="140" height="4" fill="#C84A3B"/>
+  <circle cx="38" cy="47" r="2" fill="#FAFAF7"/>
+  <circle cx="46" cy="47" r="2" fill="#FAFAF7"/>
+  <circle cx="54" cy="47" r="2" fill="#FAFAF7"/>
+  <rect x="40" y="62" width="55" height="32" rx="3" class="accent-green"/>
+  <text x="67.5" y="80" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" font-weight="500" fill="#FAFAF7" text-anchor="middle">MRR</text>
+  <text x="67.5" y="91" font-family="ui-sans-serif, system-ui, sans-serif" font-size="10" font-weight="400" fill="#FAFAF7" text-anchor="middle">$12.4k</text>
+  <rect x="105" y="80" width="8" height="14" class="accent-blue"/>
+  <rect x="117" y="74" width="8" height="20" class="accent-blue"/>
+  <rect x="129" y="68" width="8" height="26" class="accent-blue"/>
+  <rect x="141" y="62" width="8" height="32" class="accent-blue"/>
+  <line x1="103" y1="96" x2="155" y2="96" class="ink-thin"/>
+  <rect x="40" y="105" width="120" height="6" rx="1" fill="#F0EBE0"/>
+  <rect x="40" y="105" width="80" height="6" rx="1" class="accent-amber" opacity="0.6"/>
+  <rect x="40" y="117" width="120" height="6" rx="1" fill="#F0EBE0"/>
+  <rect x="40" y="117" width="55" height="6" rx="1" class="accent-purple" opacity="0.6"/>
+  <rect x="40" y="129" width="120" height="6" rx="1" fill="#F0EBE0"/>
+  <rect x="40" y="129" width="95" height="6" rx="1" class="accent-teal" opacity="0.6"/>
+  <rect x="40" y="141" width="120" height="6" rx="1" fill="#F0EBE0"/>
+  <rect x="40" y="141" width="40" height="6" rx="1" class="accent-red" opacity="0.6"/>
+  <text x="100" y="180" class="label">Admin panel</text>
+</svg>

@@ -1,4 +1,4 @@
-<div>
+<div @if ($isProcessing && ! $processingTimedOut) wire:poll.2s="checkSubscription" @endif>
     <div class="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
         <div class="flex items-center justify-between">
             <div>
@@ -6,7 +6,16 @@
                 <p class="mt-1 text-lg font-semibold uppercase tracking-wide">{{ $currentPlan->value }}</p>
             </div>
 
-            @if ($subscription)
+            @if ($isProcessing)
+                <div class="text-right text-sm">
+                    <p class="text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-2">
+                        <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="40 100"></circle>
+                        </svg>
+                        Processing payment
+                    </p>
+                </div>
+            @elseif ($subscription)
                 <div class="text-right text-sm">
                     @if ($subscription->onGracePeriod())
                         <p class="text-amber-600 dark:text-amber-400 font-medium">Cancels on {{ optional($subscription->ends_at)->toFormattedDateString() }}</p>
@@ -19,14 +28,19 @@
             @endif
         </div>
 
-        @if ($subscription)
+        @if ($isProcessing)
+            <p class="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+                @if ($processingTimedOut)
+                    Your payment is still confirming with Paddle. This usually takes a few seconds — try refreshing the page in a moment.
+                @else
+                    We're confirming your payment with Paddle. This page will update automatically as soon as it's done.
+                @endif
+            </p>
+        @elseif ($subscription)
             <div class="mt-6 flex flex-wrap gap-3">
-                @if ($paymentMethodUrl)
-                    <a href="{{ $paymentMethodUrl }}" target="_blank" rel="noopener"
-                       @class([
-                           'rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800',
-                           'opacity-50 pointer-events-none' => ! $canManageBilling,
-                       ])>
+                @if ($canManageBilling)
+                    <a href="{{ route('billing.payment-method') }}" target="_blank" rel="noopener"
+                       class="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800">
                         Update payment method
                     </a>
                 @endif

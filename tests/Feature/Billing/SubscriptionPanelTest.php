@@ -26,16 +26,13 @@ class SubscriptionPanelTest extends TestCase
             'billing.plans.enterprise.price_id' => 'pri_enterprise',
         ]);
 
+        // GET/PATCH subscriptions/sub_123 is used by stopCancelation() (PATCH).
+        // POST subscriptions/sub_123/cancel is used by cancel(). The render path no
+        // longer calls Paddle — paymentMethodUpdateUrl moved to PaymentMethodController.
         Cashier::fake()
             ->response('subscriptions/sub_123', [
                 'id' => 'sub_123',
                 'status' => Subscription::STATUS_ACTIVE,
-                'paused_at' => null,
-                'ends_at' => null,
-                'management_urls' => [
-                    'update_payment_method' => 'https://paddle.example/update-pm',
-                    'cancel' => 'https://paddle.example/cancel',
-                ],
             ])
             ->response('subscriptions/sub_123/cancel', [
                 'id' => 'sub_123',
@@ -92,6 +89,68 @@ class SubscriptionPanelTest extends TestCase
             ->test(SubscriptionPanel::class)
             ->call('cancel')
             ->assertHasErrors('subscription');
+    }
+
+    public function test_processing_state_shown_when_ptxn_param_present_and_no_subscription(): void
+    {
+        $owner = User::factory()->create();
+        app(CreatePersonalWorkspaceAction::class)->execute($owner);
+
+        Livewire::actingAs($owner->refresh())
+            ->withQueryParams(['_ptxn' => 'txn_01abc'])
+            ->test(SubscriptionPanel::class)
+            ->assertSet('processingTransactionId', 'txn_01abc')
+            ->assertSeeText('Processing payment')
+            ->assertSeeText('confirming your payment with Paddle');
+    }
+
+    public function test_processing_state_not_shown_when_subscription_already_exists(): void
+    {
+        [$owner] = $this->ownerWithActiveSubscription();
+
+        Livewire::actingAs($owner)
+            ->withQueryParams(['_ptxn' => 'txn_01abc'])
+            ->test(SubscriptionPanel::class)
+            ->assertSet('processingTransactionId', null)
+            ->assertDontSeeText('Processing payment');
+    }
+
+    public function test_check_subscription_clears_processing_state_once_subscription_appears(): void
+    {
+        $owner = User::factory()->create();
+        $workspace = app(CreatePersonalWorkspaceAction::class)->execute($owner);
+
+        $component = Livewire::actingAs($owner->refresh())
+            ->withQueryParams(['_ptxn' => 'txn_01abc'])
+            ->test(SubscriptionPanel::class)
+            ->assertSet('processingTransactionId', 'txn_01abc');
+
+        // Simulate the webhook arriving — seed a subscription on the workspace.
+        $workspace->customer()->create([
+            'paddle_id' => 'ctm_test',
+            'email' => $owner->email,
+            'name' => $owner->name,
+        ]);
+
+        $subscription = Cashier::$subscriptionModel::create([
+            'billable_id' => $workspace->id,
+            'billable_type' => $workspace::class,
+            'type' => Subscription::DEFAULT_TYPE,
+            'paddle_id' => 'sub_123',
+            'status' => Subscription::STATUS_ACTIVE,
+        ]);
+
+        $subscription->items()->create([
+            'product_id' => 'pro_test',
+            'price_id' => 'pri_pro',
+            'status' => 'active',
+            'quantity' => 1,
+        ]);
+
+        $component
+            ->call('checkSubscription')
+            ->assertSet('processingTransactionId', null)
+            ->assertSeeText('Active');
     }
 
     public function test_non_owner_cannot_cancel(): void

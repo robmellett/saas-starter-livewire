@@ -1,0 +1,23 @@
+<svg width="400" height="400" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .tile { fill: #FAFAF7; stroke: #1F1F1C; stroke-width: 1.2; }
+    .ink-stroke { stroke: #1F1F1C; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .accent-amber { fill: #D4A24C; }
+    .accent-green { fill: #4F8A5C; }
+    .label { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 500; fill: #1F1F1C; text-anchor: middle; letter-spacing: 0.3px; text-transform: uppercase; }
+  </style>
+  <rect class="tile" width="200" height="200" rx="6"/>
+  <rect x="35" y="60" width="40" height="100" rx="4" fill="#FAFAF7" stroke="#1F1F1C" stroke-width="1.2"/>
+  <rect x="80" y="45" width="40" height="115" rx="4" class="accent-green"/>
+  <rect x="125" y="75" width="40" height="85" rx="4" fill="#FAFAF7" stroke="#1F1F1C" stroke-width="1.2"/>
+  <path d="M 47 80 L 53 86 L 65 73" class="ink-stroke" stroke-width="2"/>
+  <path d="M 47 100 L 53 106 L 65 93" class="ink-stroke" stroke-width="2"/>
+  <path d="M 92 65 L 98 71 L 110 58" stroke="#FAFAF7" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 92 85 L 98 91 L 110 78" stroke="#FAFAF7" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 92 105 L 98 111 L 110 98" stroke="#FAFAF7" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 92 125 L 98 131 L 110 118" stroke="#FAFAF7" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 137 95 L 143 101 L 155 88" class="ink-stroke" stroke-width="2"/>
+  <circle cx="100" cy="35" r="9" class="accent-amber"/>
+  <path d="M 100 30 L 101.5 33.5 L 105 34 L 102.5 36.5 L 103 40 L 100 38.5 L 97 40 L 97.5 36.5 L 95 34 L 98.5 33.5 Z" fill="#1F1F1C"/>
+  <text x="100" y="180" class="label">Entitlements</text>
+</svg>

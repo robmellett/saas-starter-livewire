@@ -1,3 +1,65 @@
+# ModernSaaS — Laravel + Paddle Starter Kit
+A production-ready Laravel SaaS starter kit with Paddle billing baked in, so you can skip the boilerplate and ship your
+actual product.
+
+## Who is this for?
+Solo developers, small teams, and indie hackers who want to launch a subscription-based SaaS without spending the first
+two months wiring up auth, billing, teams, and webhooks. It assumes you're comfortable with Laravel — this isn't a
+no-code tool, it's a head start for people who'd otherwise be writing the same subscriptions migration for the fifth
+time.
+
+It's also a fit for agencies prototyping SaaS products for clients, and developers migrating off Stripe who want
+Paddle's Merchant of Record model to handle global tax compliance.
+
+## Why use it?
+Most SaaS starters either lock you into opinionated frontends you'll fight forever, or hand you a skeleton so bare you
+still spend weeks on plumbing. ModernSaaS aims for the middle: modern Laravel conventions (actions, DTOs, form requests,
+policies) with the billing layer fully wired up against Paddle's current API — including the webhook signature
+verification and subscription lifecycle edge cases that usually bite you in production.
+
+Paddle as Merchant of Record means you don't have to register for VAT/GST in 40 jurisdictions or build your own tax
+engine. The starter is built around that assumption from day one.
+
+## Features
+
+![Features](docs/images/features.png)
+
+### Billing & subscriptions (Paddle)
+Paddle Billing integration via Cashier Paddle, with checkout overlays, customer portal, subscription
+pause/resume/cancel, plan switching with prorations, trial periods, one-time charges, and webhook handlers for every
+relevant event (subscription created/updated/cancelled, transaction completed, payment failed, refunds). Includes a
+dunning flow for failed payments.
+
+### Authentication & teams
+Email/password and magic link auth, email verification, two-factor authentication, password resets, and social login
+scaffolding (Google, GitHub). Team workspaces with invitations, roles (owner/admin/member), and per-team subscription
+billing — so one user can belong to multiple teams, each with its own plan.
+
+### Plans & entitlements
+A clean entitlements layer that maps Paddle products to feature flags and usage limits (e.g., "Pro plan: 10 projects,
+50GB storage"). 
+
+Middleware and policies enforce limits without scattering if ($user->plan === 'pro') checks across your
+codebase.
+
+### Admin dashboard
+Filament-powered admin panel for managing users, teams, subscriptions, refunds, and viewing MRR/churn metrics.
+Impersonation for support, with audit logging.
+
+### Developer experience
+Built on Laravel 11+, Livewire/Volt or Inertia + React (your pick at install), Tailwind CSS, Pest for tests, and a
+domain-oriented folder structure following Laravel Beyond CRUD patterns. Includes seeders, factories, and a complete
+Pest test suite covering the billing flows. Docker Compose for local dev, GitHub Actions CI, and a one-command deploy
+script for Laravel Forge.
+
+### Production essentials
+Transactional email via Resend/Postmark, queued jobs with Horizon, rate limiting, CSP headers, GDPR-friendly data export
+and account deletion endpoints, and Sentry integration for error tracking.
+
+## Really simple deployment
+One click deploy to Laravel Cloud
+
+
 # Laravel SaaS Starter Livewire
 
 A Laravel 13 + Livewire 4 app with workspace-scoped Paddle billing.
@@ -54,7 +116,11 @@ cd saas-starter-livewire
 
 cp .env.example .env
 
-# Fill in PADDLE_* vars (see Billing section for more information)
+# See Billing section for more information on setting up Paddle.
+PADDLE_SANDBOX=true
+PADDLE_CLIENT_SIDE_TOKEN=your-paddle-client-side-token
+PADDLE_API_KEY=
+PADDLE_WEBHOOK_SECRET="your-paddle-webhook-secret"
 
 composer install
 npm install
@@ -63,10 +129,12 @@ php artisan key:generate
 ./vendor/bin/sail up -d
 ./vendor/bin/sail artisan migrate
 
-npm run dev   # in another terminal
+npm run dev 
 ```
 
-Open <http://localhost> · Mailpit (password-reset emails) at <http://localhost:8025>.
+Open [http://localhost](http://localhost). 
+
+Mailpit (password-reset emails) at <http://localhost:8025>.
 
 ## Routes
 
@@ -149,26 +217,30 @@ Enterprise — env('PADDLE_PRICE_ENTERPRISE')
 4. Component dispatches a browser event `paddle-checkout` with the checkout config
 5. JS handler in `resources/views/billing/index.blade.php` calls `Paddle.Checkout.open(config)`, the Paddle overlay opens
 6. User completes payment in the overlay
-7. Paddle sends webhooks to `/paddle/webhook`
-8. Cashier creates `subscriptions` + `subscription_items` rows, dispatches `Laravel\Paddle\Events\SubscriptionCreated`
-9. `Domain\Billing\Listeners\SyncSubscriptionPlan` writes `workspaces.plan` from the subscription's price ID
+7. Paddle sends webhooks to `/paddle/webhook` *and* redirects the user back to `/billing?_ptxn=txn_xxx` (the `successUrl` set by `StartCheckoutAction::returnTo()`)
+8. `SubscriptionPanel` detects `?_ptxn=` and enters a **Processing payment** state — it shows a spinner and polls `checkSubscription()` every 2 seconds via `wire:poll` until the row appears. After 60 seconds (`SubscriptionPanel::PROCESSING_TIMEOUT_SECONDS`) the polling stops and the message switches to "try refreshing in a moment"
+9. Cashier creates `subscriptions` + `subscription_items` rows, dispatches `Laravel\Paddle\Events\SubscriptionCreated`
+10. `Domain\Billing\Listeners\SyncSubscriptionPlan` writes `workspaces.plan` from the subscription's price ID
+11. The next `wire:poll` tick on `SubscriptionPanel` picks up the new subscription, clears `processingTransactionId`, and renders the normal "Active" view — no page refresh needed
 
 The Paddle.js script is injected by `@paddleJS` (a Cashier directive) on the `/billing` page only — we don't load it globally.
 
 **Reading the current plan**: always call `$workspace->currentPlan()`, never the raw `plan` column.
 
 ```php
+# App\Models\Workspace.php
+
 public function currentPlan(): WorkspacePlan
 {
     if (! $this->subscribed()) {
         return WorkspacePlan::Free;
     }
 
-    if ($this->subscription()?->hasPrice($enterprisePriceId)) return WorkspacePlan::Enterprise;
-    if ($this->subscription()?->hasPrice($proPriceId))        return WorkspacePlan::Pro;
-    if ($this->subscription()?->hasPrice($basicPriceId))      return WorkspacePlan::Basic;
-
-    return $this->plan ?? WorkspacePlan::Free;
+    if ($this->subscription()?->hasPrice($enterprisePriceId)) {
+        return WorkspacePlan::Enterprise;
+    }
+    
+    // ....
 }
 ```
 
@@ -195,7 +267,31 @@ PADDLE_PRICE_PRO=pri_xxx
 PADDLE_PRICE_ENTERPRISE=pri_xxx
 ```
 
-To test webhooks locally, expose the app to the public internet (e.g. `cloudflared tunnel --url http://localhost`) and register the tunnel URL + `/paddle/webhook` in Paddle's dashboard.
+### Testing webhooks locally
+
+Two options:
+
+**1. Fake them with the artisan command** (no internet round-trip):
+
+```bash
+# Default: subscription.created against the first workspace that has a Paddle customer
+./vendor/bin/sail artisan paddle:fake-webhook
+
+# Pin the event, workspace, plan, and subscription ID
+./vendor/bin/sail artisan paddle:fake-webhook subscription.created \
+  --workspace=1 --price=enterprise --id=sub_my_test_001
+
+# Other supported events
+./vendor/bin/sail artisan paddle:fake-webhook subscription.updated --workspace=1
+./vendor/bin/sail artisan paddle:fake-webhook subscription.canceled --workspace=1
+./vendor/bin/sail artisan paddle:fake-webhook transaction.completed --workspace=1
+```
+
+The command builds a realistic Paddle payload, signs it with `PADDLE_WEBHOOK_SECRET`, and POSTs to your local `/paddle/webhook`. It refuses to run when `APP_ENV=production`. The customer must already exist locally — visit `/billing` as the workspace owner once to create the Paddle customer record (this is the only step that requires Paddle's live API).
+
+**2. Receive real Paddle webhooks** (full round-trip):
+
+Expose the app to the public internet (e.g. `cloudflared tunnel --url http://localhost`) and register the tunnel URL + `/paddle/webhook` in Paddle's dashboard. Paddle will then post real events as customers move through checkout.
 
 ## Authorization
 
@@ -248,20 +344,23 @@ Feature tests covering:
  - `SyncSubscriptionPlan` listener (Pro/Enterprise/Updated/unknown-price fallback)
  - `PlanPicker` Livewire checkout dispatch (via `Cashier::fake()`)
  - `SubscriptionPanel` cancel/resume/error paths (via `Cashier::fake()`)
+ - `SubscriptionPanel` post-payment processing state (`?_ptxn=` detection, poll-driven clear once subscription appears)
  - Paddle webhook signature verification (valid, missing, tampered, stale-timestamp)
+ - `paddle:fake-webhook` artisan command (payload shape + HMAC signature header)
 
 Tests use `LazilyRefreshDatabase` against the Sail Postgres container — each test runs in a transaction so data doesn't leak.
 
 ## Console Commands
 
 ```bash
-./vendor/bin/sail up -d                   # start containers
-./vendor/bin/sail artisan migrate         # apply migrations
-./vendor/bin/sail artisan test            # run the suite
-./vendor/bin/sail artisan tinker          # REPL
-./vendor/bin/pint                         # format
-./vendor/bin/phpstan analyse              # static analysis
+./vendor/bin/sail up -d                                          # start containers
+./vendor/bin/sail artisan migrate                                # apply migrations
+./vendor/bin/sail artisan test                                   # run the suite
+./vendor/bin/sail artisan tinker                                 # REPL
+./vendor/bin/sail artisan paddle:fake-webhook [event] [options]  # sign + POST a Paddle webhook locally (dev only)
+./vendor/bin/pint                                                # format
+./vendor/bin/phpstan analyse                                     # static analysis (Larastan, level 6)
 
-npm run dev                               # Vite dev server (host-side)
-npm run build                             # production bundle
+npm run dev                                                      # Vite dev server (host-side)
+npm run build                                                    # production bundle
 ```
