@@ -50,7 +50,5 @@ return [
                 'Dedicated support',
             ],
         ],
-
     ],
-
 ];

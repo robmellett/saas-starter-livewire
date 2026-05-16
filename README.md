@@ -144,7 +144,9 @@ public function currentPlan(): WorkspacePlan
         return WorkspacePlan::Free;          // also handles post-grace
     }
     if ($this->subscription()?->hasPrice($enterprisePriceId)) return WorkspacePlan::Enterprise;
+    
     if ($this->subscription()?->hasPrice($premiumPriceId))    return WorkspacePlan::Premium;
+    
     return $this->plan ?? WorkspacePlan::Free;
 }
 ```

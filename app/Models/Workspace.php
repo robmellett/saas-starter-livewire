@@ -29,7 +29,8 @@ class Workspace extends Model
 
     public function members(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'workspace_user')
+        return $this
+            ->belongsToMany(User::class, 'workspace_user')
             ->withPivot('role')
             ->withTimestamps();
     }
@@ -50,12 +51,14 @@ class Workspace extends Model
 
         $subscription = $this->subscription();
 
-        $enterprise = config('billing.plans.enterprise.price_id');
+        $enterprise = config()->string('billing.plans.enterprise.price_id');
+
         if ($enterprise && $subscription?->hasPrice($enterprise)) {
             return WorkspacePlan::Enterprise;
         }
 
-        $premium = config('billing.plans.premium.price_id');
+        $premium = config()->string('billing.plans.premium.price_id');
+
         if ($premium && $subscription?->hasPrice($premium)) {
             return WorkspacePlan::Premium;
         }
