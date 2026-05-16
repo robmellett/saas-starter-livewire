@@ -133,6 +133,36 @@ Open [http://localhost](http://localhost).
 
 Mailpit (password-reset emails) at <http://localhost:8025>.
 
+## Environment files
+
+The repo ships two `.env` templates:
+
+| File | Copy to | Used for |
+|---|---|---|
+| `.env.example` | `.env` | Local development |
+| `.env.test.example` | `.env.test` | Test suite |
+
+```bash
+cp .env.example .env
+cp .env.test.example .env.test
+```
+
+Both files are pre-filled with safe defaults. The variables you must set before first run:
+
+```
+APP_KEY=                          # generate with: php artisan key:generate
+PADDLE_SANDBOX=true               # false in production
+PADDLE_SELLER_ID=
+PADDLE_API_KEY=
+PADDLE_CLIENT_SIDE_TOKEN=         # loaded by Paddle.js in the browser
+PADDLE_WEBHOOK_SECRET=
+PADDLE_PRICE_BASIC=pri_xxx
+PADDLE_PRICE_PRO=pri_xxx
+PADDLE_PRICE_ENTERPRISE=pri_xxx
+```
+
+`phpunit.xml` overrides the database, cache, mail, and queue drivers for the test suite, so `.env.test` does not need Postgres or Redis credentials — only the Paddle keys are required to run the webhook and checkout tests.
+
 ## Routes
 
 | Method | Path | Name | Notes |
