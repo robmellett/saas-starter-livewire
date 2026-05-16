@@ -49,14 +49,10 @@ Filament-powered admin panel for managing users, teams, subscriptions, refunds, 
 Impersonation for support, with audit logging.
 
 ### Developer experience
-Built on Laravel 11+, Livewire/Volt or Inertia + React (your pick at install), Tailwind CSS, Pest for tests, and a
+Built on Laravel 13+, Livewire/Volt or Inertia + React (your pick at install), Tailwind CSS, Pest for tests, and a
 domain-oriented folder structure following Laravel Beyond CRUD patterns. Includes seeders, factories, and a complete
 Pest test suite covering the billing flows. Docker Compose for local dev, GitHub Actions CI, and a one-command deploy
 script for Laravel Cloud.
-
-### Production essentials
-Transactional email via Resend/Postmark, queued jobs with Horizon, rate limiting, CSP headers, GDPR-friendly data export
-and account deletion endpoints, and Sentry integration for error tracking.
 
 ### Really simple deployment
 One click deploy to Laravel Cloud
@@ -65,9 +61,9 @@ One click deploy to Laravel Cloud
 
 - **PHP** 8.4· **Laravel** 13 · **Livewire** 4
 - **DB** PostgreSQL via Laravel Sail in dev; SQLite in-memory for tests
-- **Frontend** Vite 8 + TailwindCSS 4 + plain Blade (no Inertia / Filament)
+- **Frontend** Vite 8 + TailwindCSS 4 + plain Blade
 - **Auth** Laravel Fortify (custom Blade views, no email verification, 2FA columns present but no UI)
-- **Billing** Laravel Cashier Paddle (Paddle Billing — current product, not Classic)
+- **Billing** Laravel Cashier Paddle
 - **DTOs** spatie/laravel-data
 - **Quality** Pint, Larastan, PHPUnit 12
 
@@ -114,10 +110,14 @@ cd saas-starter-livewire
 cp .env.example .env
 
 # See Billing section for more information on setting up Paddle.
-PADDLE_SANDBOX=true
-PADDLE_CLIENT_SIDE_TOKEN=your-paddle-client-side-token
+PADDLE_SANDBOX=true               # false for production
+PADDLE_SELLER_ID=
 PADDLE_API_KEY=
-PADDLE_WEBHOOK_SECRET="your-paddle-webhook-secret"
+PADDLE_CLIENT_SIDE_TOKEN=         # used by Paddle.js
+PADDLE_WEBHOOK_SECRET=
+PADDLE_PRICE_BASIC=pri_xxx
+PADDLE_PRICE_PRO=pri_xxx
+PADDLE_PRICE_ENTERPRISE=pri_xxx
 
 composer install
 npm install
@@ -189,11 +189,14 @@ Layouts live as anonymous Blade components in `resources/views/components/layout
 
 #### 1. Create a Paddle account
 
-Go to [paddle.com](https://paddle.com) and sign up. Paddle operates as a Merchant of Record, so they handle global tax compliance on your behalf — no VAT/GST registrations required.
+Go to [paddle.com](https://paddle.com) and sign up. Paddle operates as a Merchant of Record, so they handle global tax
+compliance on your behalf — no VAT/GST registrations required.
 
 #### 2. Switch to Sandbox for development
 
-In the Paddle dashboard, use the **Sandbox** toggle in the top-left corner (or navigate to `sandbox-vendors.paddle.com`). All development and testing should happen in sandbox mode. Set `PADDLE_SANDBOX=true` in `.env` while working locally.
+In the Paddle dashboard, use the **Sandbox** toggle in the top-left corner (or navigate to
+`sandbox-vendors.paddle.com`). All development and testing should happen in sandbox mode. Set `PADDLE_SANDBOX=true` in
+`.env` while working locally.
 
 #### 3. Get your Seller ID
 
@@ -207,14 +210,15 @@ PADDLE_SELLER_ID=12345
 
 #### 4. Create a Product and Prices
 
-Paddle uses a two-level hierarchy: **Products** contain one or more **Prices** (recurring billing intervals / currencies).
+Paddle uses a two-level hierarchy: **Products** contain one or more **Prices** (recurring billing intervals /
+currencies).
 
 1. Go to **Catalog > Products** and click **New product**.
 2. Give it a name (e.g. `ModernSaaS`) and save.
 3. With the product open, click **New price** for each plan:
-   - **Basic** — e.g. $10/month, `billing_cycle: monthly`
-   - **Pro** — e.g. $100/month
-   - **Enterprise** — e.g. $500/month
+    - **Basic** — e.g. $10/month, `billing_cycle: monthly`
+    - **Pro** — e.g. $100/month
+    - **Enterprise** — e.g. $500/month
 4. After saving each price, copy the **Price ID** (format: `pri_xxxxxxxxxxxxxxxxxxxxxxxx`).
 5. Add them to `.env`:
 
@@ -238,7 +242,8 @@ PADDLE_API_KEY=your-paddle-api-key
 
 #### 6. Create a Client-Side Token
 
-The client-side token is used by `Paddle.js` in the browser to open the checkout overlay. It is safe to expose to the frontend.
+The client-side token is used by `Paddle.js` in the browser to open the checkout overlay. It is safe to expose to the
+frontend.
 
 - Go to **Developer Tools > Authentication > Client-side tokens**.
 - Click **Generate client-side token**, copy the value.
@@ -250,14 +255,16 @@ PADDLE_CLIENT_SIDE_TOKEN=your-paddle-client-side-token
 
 #### 7. Configure the Webhook
 
-Paddle sends subscription lifecycle events (created, updated, canceled, payment failed, etc.) to your webhook endpoint. Cashier Paddle verifies the signature automatically.
+Paddle sends subscription lifecycle events (created, updated, canceled, payment failed, etc.) to your webhook endpoint.
+Cashier Paddle verifies the signature automatically.
 
 1. Go to **Developer Tools > Notifications**.
 2. Click **New notification**.
 3. Set the **URL** to your publicly reachable webhook endpoint:
-   - Local dev via tunnel: `https://<your-tunnel>.trycloudflare.com/paddle/webhook`
-   - Production: `https://yourdomain.com/paddle/webhook`
-4. Under **Events**, select all `subscription.*` and `transaction.*` events (at minimum: `subscription.created`, `subscription.updated`, `subscription.canceled`, `transaction.completed`, `transaction.payment_failed`).
+    - Local dev via tunnel: `https://<your-tunnel>.trycloudflare.com/paddle/webhook`
+    - Production: `https://yourdomain.com/paddle/webhook`
+4. Under **Events**, select all `subscription.*` and `transaction.*` events (at minimum: `subscription.created`,
+   `subscription.updated`, `subscription.canceled`, `transaction.completed`, `transaction.payment_failed`).
 5. Save, then click the notification to reveal the **Secret key**.
 6. Add it to `.env`:
 
@@ -265,7 +272,9 @@ Paddle sends subscription lifecycle events (created, updated, canceled, payment 
 PADDLE_WEBHOOK_SECRET=your-webhook-secret-key
 ```
 
-> **Local dev tip**: To receive real webhooks on localhost, expose your app with `cloudflared tunnel --url http://localhost` and register the tunnel URL. Alternatively, use the built-in `paddle:fake-webhook` artisan command — no tunnel required (see [Testing webhooks locally](#testing-webhooks-locally)).
+> **Local dev tip**: To receive real webhooks on localhost, expose your app with
+`cloudflared tunnel --url http://localhost` and register the tunnel URL. Alternatively, use the built-in
+`paddle:fake-webhook` artisan command — no tunnel required (see [Testing webhooks locally](#testing-webhooks-locally)).
 
 #### 8. Complete `.env` configuration
 
@@ -289,9 +298,10 @@ Set `PADDLE_SANDBOX=false` and swap all sandbox credentials for live credentials
 1. Start the app: `./vendor/bin/sail up -d && npm run dev`
 2. Register a user and navigate to `/billing`.
 3. Click **Upgrade** on any plan — the Paddle overlay should open.
-4. Use a [Paddle sandbox test card](https://developer.paddle.com/concepts/payment-methods/credit-debit-card) to complete the checkout.
-5. After payment, you should land on `/billing/pending`, then be redirected to `/billing` with the plan showing as active once the `subscription.created` webhook lands.
-
+4. Use a [Paddle sandbox test card](https://developer.paddle.com/concepts/payment-methods/credit-debit-card) to complete
+   the checkout.
+5. After payment, you should land on `/billing/pending`, then be redirected to `/billing` with the plan showing as
+   active once the `subscription.created` webhook lands.
 
 ### Tenant model: subscriptions belong to a `Workspace`, not a `User`. 
 
@@ -336,21 +346,66 @@ The Paddle.js script is injected by `@paddleJS` (a Cashier directive) on the `/b
 
 **Reading the current plan**: always call `$workspace->currentPlan()`, never the raw `plan` column.
 
+This will return the current plan for the workspace, taking into account the subscription status and price IDs. It ensures that the plan is always up-to-date and accurate.
+
+You can configure additional plans in `config/billing.php`. The `price_id` column is configured in the Paddle.com Product Catalogue dashboard.
+
 ```php
-# App\Models\Workspace.php
+# config/billing.php
 
-public function currentPlan(): WorkspacePlan
-{
-    if (! $this->subscribed()) {
-        return WorkspacePlan::Free;
-    }
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Plans
+    |--------------------------------------------------------------------------
+    |
+    | Each plan key MUST match a case of Domain\Workspaces\Enums\WorkspacePlan.
+    | Free has no Paddle price (no subscription is created — the workspace
+    | simply has plan='free'). Premium and Enterprise reference Paddle price
+    | IDs from the Paddle dashboard (sandbox or live, controlled by
+    | PADDLE_SANDBOX).
+    |
+    */
 
-    if ($this->subscription()?->hasPrice($enterprisePriceId)) {
-        return WorkspacePlan::Enterprise;
-    }
+    'plans' => [
     
-    // ....
-}
+        'basic' => [
+            'name' => 'Basic',
+            'price_id' => env('PADDLE_PRICE_BASIC'),
+            'amount' => 1000,
+            'features' => [
+                '10 conversions / month',
+                'PDF, Word doc, slide deck, spreadsheets',
+                'Fair rate limits',
+            ],
+        ],
+
+        'pro' => [
+            'name' => 'Pro',
+            'price_id' => env('PADDLE_PRICE_PRO'),
+            'amount' => 10000,
+            'features' => [
+                'Everything in Free',
+                '100 conversions / month',
+                'Audio transcription * Coming Soon',
+                'Video transcription * Coming Soon',
+                'Priority email support',
+            ],
+        ],
+
+        'enterprise' => [
+            'name' => 'Enterprise',
+            'price_id' => env('PADDLE_PRICE_ENTERPRISE'),
+            'amount' => 50000,
+            'features' => [
+                'Everything in Premium',
+                '500 conversions / month',
+                'SSO + audit logs',
+                'Dedicated support',
+            ],
+        ],
+    ],
+];
 ```
 
 The `workspaces.plan` column is a denormalized cache, useful for `WHERE plan = 'pro'` queries.
@@ -366,18 +421,6 @@ The `workspaces.plan` column is a denormalized cache, useful for `WHERE plan = '
 - `paymentMethodUpdateUrl()` hits Paddle's API (`GET subscriptions/{id}`) — doing it on every billing-page render adds ~100–300ms per page load.
 - If the local `subscriptions` row points at a Paddle ID that no longer exists (stale `paddle:fake-webhook` seed, environment rotation), the render would explode. The deferred-fetch model isolates that failure to the click and redirects back to `/billing` with a session error.
 
-### Required env vars
-
-```
-PADDLE_SANDBOX=true               # false for production
-PADDLE_SELLER_ID=
-PADDLE_API_KEY=
-PADDLE_CLIENT_SIDE_TOKEN=         # used by Paddle.js
-PADDLE_WEBHOOK_SECRET=
-PADDLE_PRICE_BASIC=pri_xxx
-PADDLE_PRICE_PRO=pri_xxx
-PADDLE_PRICE_ENTERPRISE=pri_xxx
-```
 
 ### Testing webhooks locally
 
