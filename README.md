@@ -189,11 +189,9 @@ Layouts live as anonymous Blade components in `resources/views/components/layout
 3. Set your default Payment link In Paddle
 4. Create a Client Side Token in Paddle.
 5. Open a checkout and test a payment link
-6. Configure the Paddle webhook URL in Paddle. 
-   
-   Under `Developer Tools > Notifications`.
-
-   The default Laravel cashier URL is `http://localhost/paddle/webhook`.
+6. Configure the Paddle webhook URL in Paddle.
+   - Under `Developer Tools > Notifications`.
+   - The default Laravel cashier URL is `http://localhost/paddle/webhook`.
 
 
 ### Tenant model: subscriptions belong to a `Workspace`, not a `User`. 
